@@ -1,0 +1,35 @@
+Alternative (if you'd rather not go container): we stop here and document L0 as blocked — Modular ships no glibc-2.31 wheel, which is itself a legitimate evaluation result for the Argonne stack question. But containers are the standard ALCF answer and I recommend we try it.
+
+
+google supports that view:
+--------------------------
+
+Yes, this is a highly valid and accurate comment.
+Using containers on [Aurora](https://docs.alcf.anl.gov/aurora/containers/containers/) is not only supported, but it is often the officially recommended path by ALCF staff. [1, 2]
+Here is why your team should follow that recommendation, along with a few technical realities to keep in mind:
+## Why Containers are the Standard Answer
+
+*
+* Mitigating Shared Library Bottlenecks: On Aurora, launching applications "natively" by loading dozens of individual Spack modules out of the shared network file systems (/soft or /flare) can drastically slow down job launch times due to file system metadata congestion. Because a container bundles the entire environment into a single image file, it bypasses this congestion entirely.
+* Simplifying the Intel oneAPI Stack: Aurora features Intel Max Series GPUs, meaning your software must interact with the Intel oneAPI runtime, Level Zero drivers, and specialized MPI. Building software natively to match these exact rolling system updates can be an installation headache. ALCF heavily promotes using containers—often utilizing their pre-configured, optimized oneAPI and AI base images—to bypass manual compilation. [1, 2, 3, 4]
+* Near-Native Performance: HPC container runtimes are designed to avoid traditional virtualization overhead. When configured properly with system-level optimizations, containers on Aurora achieve near-native bare-metal performance. [1, 5]
+*
+
+## Technical Realities to Plan For
+
+*
+* Apptainer (Singularity) is Mandatory: Aurora does not support Docker directly because Docker requires root-privileged background processes. Instead, Apptainer is the standard container engine. You can write your Dockerfile locally, push it to DockerHub, and then use Apptainer on an Aurora compute node to pull and convert it into a .sing or .sif image. [6, 7]
+* The "HPC-MPI" Catch: To get full performance across thousands of nodes, a standard container needs to hook into Aurora's native Cray-MPICH fabric at runtime. If your application relies heavily on multi-node MPI communication, ensure you look at ALCF's specific documentation on mounting the host MPI libraries inside your Apptainer environment to avoid being limited to single-node execution. [4, 8]
+*
+
+Would you like assistance setting up a basic Apptainer recipe for Aurora, or do you need help configuring a container to interface with the native MPI network? [4, 6, 8]
+
+[1] [https://arxiv.org](https://arxiv.org/html/2509.17914v1)
+[2] [https://arxiv.org](https://arxiv.org/pdf/2509.17914)
+[3] [https://docs.alcf.anl.gov](https://docs.alcf.anl.gov/aurora/system-updates/)
+[4] [https://arxiv.org](https://arxiv.org/pdf/2509.17914)
+[5] [https://arxiv.org](https://arxiv.org/html/2509.17914v1)
+[6] [https://docs.alcf.anl.gov](https://docs.alcf.anl.gov/aurora/containers/containers/)
+[7] [https://dl.acm.org](https://dl.acm.org/doi/full/10.1145/3712285.3759868)
+[8] [https://arxiv.org](https://arxiv.org/html/2509.17914v1)
+

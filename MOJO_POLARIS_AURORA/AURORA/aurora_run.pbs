@@ -1,0 +1,28 @@
+#!/bin/bash
+# ── Generic Mojo run job (container form) — reusable for the CPU ladder L1–L4 ──
+# Pass the .mojo file via qsub -v, e.g.:
+#   qsub -v MOJOFILE=00_simd_type.mojo aurora_run.pbs
+#   qsub -v MOJOFILE=01_vecadd_safe.mojo aurora_run.pbs
+# Output: mojo_run.o<jobid>.  (Aurora PBS: no inline comments after #PBS values.)
+#
+#PBS -N mojo_run
+#PBS -A ModCon
+#PBS -q debug
+#PBS -l select=1
+#PBS -l walltime=00:20:00
+#PBS -l filesystems=flare:home
+#PBS -j oe
+
+set -e
+
+module load apptainer/1.2.5
+
+PROJROOT=/lus/flare/projects/ModCon/$USER/MOJO_WORK/AURORA
+IMG="$PROJROOT/ubuntu2404.sif"
+cd "$PROJROOT"
+
+: "${MOJOFILE:?set the file to run, e.g. qsub -v MOJOFILE=00_simd_type.mojo aurora_run.pbs}"
+
+echo "== node $(hostname) | nproc=$(nproc) | file=$MOJOFILE =="
+apptainer exec --bind /lus "$IMG" "$PROJROOT/.venv/bin/mojo" run "$PROJROOT/$MOJOFILE"
+echo "== done: $MOJOFILE =="

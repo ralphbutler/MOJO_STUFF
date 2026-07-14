@@ -1,0 +1,38 @@
+#!/bin/bash
+# ── Container feasibility probe (BATCH form) ──────────────────────────────────
+# Polaris lesson: batch PBS jobs were more reliable than `qsub -I`. Same checks as
+# Step 5, but non-interactive — output lands in mojo_probe.o<jobid>.  Submit:
+#   qsub aurora_probe.pbs
+#
+#PBS -N mojo_probe
+#PBS -A ModCon
+#PBS -q debug
+#PBS -l select=1
+#PBS -l walltime=00:30:00
+#PBS -l filesystems=flare:home
+#PBS -j oe
+
+set -e
+
+# Compute nodes reach the internet only via proxy.
+export http_proxy=http://proxy.alcf.anl.gov:3128
+export https_proxy=http://proxy.alcf.anl.gov:3128
+export ftp_proxy=http://proxy.alcf.anl.gov:3128
+
+module load apptainer/1.2.5
+apptainer --version
+
+export APPTAINER_CACHEDIR=/lus/flare/projects/ModCon/$USER/MOJO_WORK/.apptainer_cache
+mkdir -p "$APPTAINER_CACHEDIR"
+cd /lus/flare/projects/ModCon/$USER/MOJO_WORK/AURORA
+
+echo "== 1. pull + convert to SIF (needs userns; expected to work on compute) =="
+apptainer pull -F ubuntu2404.sif docker://ubuntu:24.04
+
+echo "== 2. glibc inside the image (must be >= 2.34) =="
+apptainer exec ubuntu2404.sif ldd --version | head -1
+
+echo "== 3. host uv runs inside the newer-glibc container? =="
+apptainer exec --bind /lus ubuntu2404.sif "$HOME/.local/bin/uv" --version
+
+echo "== probe complete =="

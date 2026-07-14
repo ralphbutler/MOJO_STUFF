@@ -1,0 +1,21 @@
+- 00 — SIMD is the data itself. You hand-build SIMD[f32, 4](1,2,3,4). All four
+values live in that one register value; you operate on it directly. There's no
+array anywhere.
+
+- 01 — SIMD is a moving window over a big array. The million floats live in
+memory (the pointer). load[width=4](i) copies a 4-float slice into a temporary
+SIMD register, you add, store puts it back, then i += 4 slides the window
+forward. The SIMD value is transient scaffolding; the array is the real data.
+
+Same SIMD[f32, 4] type in both — in 00 it is your data, in 01 it's a 4-wide bite
+you take out of much larger data. That's the whole mental leap between them.
+
+- 01 unsafe vs safe — same SIMD kernel, different memory ownership. In
+01_vecadd_unsafe, alloc() hands you raw UnsafePointers: no bounds checks
+anywhere, and YOU must call .free() or you leak. In 01_vecadd_safe, List owns
+the buffers: a[i] is bounds-checked, and the memory frees itself at end of
+scope. The safe version still drops to a raw pointer — via .unsafe_ptr() — but
+only inside the timed hot loop, because SIMD load/store needs a pointer. So the
+real lesson: unsafety isn't all-or-nothing; you shrink the unsafe surface to
+the one block where it buys speed, and let List handle lifetime everywhere
+else. The SIMD loop itself is line-for-line identical in both files.

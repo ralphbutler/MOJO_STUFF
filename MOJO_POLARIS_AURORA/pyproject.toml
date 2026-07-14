@@ -1,0 +1,12 @@
+[project]
+name = "mojo-aurora"
+version = "0.1.0"
+description = "Mojo learning and experiments"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mojo>=1.0.0b2",
+]
+
+[tool.uv]
+prerelease = "allow"

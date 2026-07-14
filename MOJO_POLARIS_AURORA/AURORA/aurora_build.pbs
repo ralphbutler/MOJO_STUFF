@@ -1,0 +1,49 @@
+#!/bin/bash
+# ── Build the Mojo venv INSIDE the container (BATCH) ──────────────────────────
+# PROVISIONAL — run only after aurora_probe.pbs confirms: pull works, glibc>=2.34,
+# host uv runs inside ubuntu2404.sif. Installs Mojo into a flare .venv from inside
+# the newer-glibc image (uv then sees manylinux_2_39, so the 2.34 wheel resolves).
+#   qsub aurora_build.pbs   → log: mojo_build.o<jobid>
+#
+#PBS -N mojo_build
+#PBS -A ModCon
+#PBS -q debug
+#PBS -l select=1
+#PBS -l walltime=00:30:00
+#PBS -l filesystems=flare:home
+#PBS -j oe
+
+set -e
+
+export http_proxy=http://proxy.alcf.anl.gov:3128
+export https_proxy=http://proxy.alcf.anl.gov:3128
+export ftp_proxy=http://proxy.alcf.anl.gov:3128
+
+module load apptainer/1.2.5
+
+PROJROOT=/lus/flare/projects/ModCon/$USER/MOJO_WORK/AURORA
+IMG="$PROJROOT/ubuntu2404.sif"
+cd "$PROJROOT"
+
+# Fresh slate: drop EVERYTHING left by earlier bare-host attempts — including the
+# stale .python-version (pinned to system 3.6, which uv can't fetch) and uv-init samples.
+rm -rf .venv uv.lock pyproject.toml .python-version main.py hello.py
+
+# Everything runs INSIDE the container: newer glibc + host uv (auto-bound via $HOME).
+apptainer exec --bind /lus \
+  --env http_proxy="$http_proxy" --env https_proxy="$https_proxy" --env ftp_proxy="$ftp_proxy" \
+  "$IMG" bash -lc '
+    set -e
+    export PATH="$HOME/.local/bin:$PATH"
+    export UV_CACHE_DIR="'"$PROJROOT"'/.uv_cache"
+    cd "'"$PROJROOT"'"
+    uv python install 3.12                 # fetch managed CPython 3.12 via proxy
+    uv init --name mojo-aurora --python 3.12
+    uv add mojo --prerelease allow --python 3.12
+    uv lock
+    uv sync
+    echo "== mojo --version (inside container) =="
+    uv run mojo --version
+'
+
+echo "== build complete: venv at $PROJROOT/.venv =="

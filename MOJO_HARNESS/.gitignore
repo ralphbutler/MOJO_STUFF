@@ -1,0 +1,11 @@
+# Mojo/uv build artifacts — regenerate locally
+.venv/
+__pycache__/
+# compiled binaries (build with: uv run mojo build harness.mojo -o harness)
+harness
+scratch_get_models
+scratch_chat
+scratch_hello
+scratch_json
+scratch_stream
+*.o

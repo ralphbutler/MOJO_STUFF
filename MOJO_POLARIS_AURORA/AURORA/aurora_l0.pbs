@@ -1,0 +1,36 @@
+#!/bin/bash
+# ── L0 smoke test PBS job for Aurora (container form) ─────────────────────────
+# Runs the Mojo smoke test on ONE compute node, INSIDE the ubuntu2404.sif image
+# (glibc 2.39) built by aurora_build.pbs.  No network needed — the .venv is
+# pre-built on flare and mojo runs under the container's newer glibc.  Submit:
+#   qsub aurora_l0.pbs        → log: mojo_l0.o<jobid>
+#
+# NOTE: Aurora PBS does NOT allow inline comments after #PBS directive values.
+# -A ModCon (allocation) | -q debug | select=1 node | flare:home filesystems | -j oe merges logs
+#PBS -N mojo_l0
+#PBS -A ModCon
+#PBS -q debug
+#PBS -l select=1
+#PBS -l walltime=00:10:00
+#PBS -l filesystems=flare:home
+#PBS -j oe
+
+set -e
+
+module load apptainer/1.2.5
+
+PROJROOT=/lus/flare/projects/ModCon/$USER/MOJO_WORK/AURORA
+IMG="$PROJROOT/ubuntu2404.sif"
+cd "$PROJROOT"
+
+echo "== node info =="
+hostname
+nproc
+echo
+
+# Run Mojo from the flare .venv, INSIDE the container (newer glibc). Offline: no proxy.
+echo "== L0 smoke (inside container) =="
+apptainer exec --bind /lus "$IMG" \
+  "$PROJROOT/.venv/bin/mojo" run "$PROJROOT/aurora_l0_smoke.mojo"
+
+echo "== L0 job complete =="

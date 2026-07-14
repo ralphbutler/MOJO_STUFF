@@ -1,0 +1,17 @@
+# Mojo / uv / MAX build artifacts — regenerate locally with `uv run`
+# (uv.lock is intentionally kept so colleagues get identical toolchain versions)
+.venv/
+.uv/
+__pycache__/
+*.py[cod]
+
+# Compiled Mojo/native binaries and objects
+*.o
+*.so
+*.dylib
+
+# macOS / editor cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/

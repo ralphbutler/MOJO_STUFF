@@ -1,0 +1,12 @@
+[project]
+name = "mojo-harness"
+version = "0.1.0"
+description = "A minimal LLM coding-agent harness written natively in Mojo (libc sockets + hand-rolled JSON)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mojo>=1.0.0b2",
+]
+
+[tool.uv]
+prerelease = "allow"

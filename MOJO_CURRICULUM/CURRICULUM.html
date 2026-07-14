@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Mojo GPU Curriculum</title>
+  <style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">body {
+font-family: Georgia, 'Times New Roman', serif;
+font-size: 15px;
+line-height: 1.5;
+color: #1a1a1a;
+max-width: 46em;
+margin: 2em auto;
+padding: 0 1em;
+}
+h1 { font-size: 1.7em; border-bottom: 2px solid #444; padding-bottom: 0.2em; }
+h2 { font-size: 1.35em; border-bottom: 1px solid #999; padding-bottom: 0.15em; margin-top: 1.6em; }
+h3 { font-size: 1.1em; margin-top: 1.4em; }
+code {
+font-family: Menlo, Consolas, monospace;
+font-size: 0.88em;
+background-color: #f2f2f2;
+padding: 1px 4px;
+border-radius: 3px;
+}
+pre {
+background-color: #f2f2f2;
+border: 1px solid #ddd;
+border-radius: 4px;
+padding: 10px 12px;
+overflow-x: auto;
+}
+pre code { background-color: transparent; padding: 0; }
+table {
+border-collapse: collapse;
+margin: 1em 0;
+font-size: 0.95em;
+}
+th, td {
+border: 1px solid #bbb;
+padding: 6px 10px;
+text-align: left;
+vertical-align: top;
+}
+th { background-color: #eee; }
+strong { color: #000; }
+li { margin-bottom: 0.35em; }
+</style>
+</head>
+<body>
+<h1 id="books-mojo-gpu-curriculum">📚 Mojo GPU Curriculum</h1>
+<p>A numbered sequence of small Mojo programs that build from a single
+SIMD register up to GPU kernels. Each file is self-contained and heavily
+commented; this doc holds the <strong>why</strong> — the ideas you need
+to make sense of the code, not a restatement of it.</p>
+<p><strong>The arc:</strong> one register → one core over an array →
+thousands of GPU threads → a full training loop built by hand from those
+kernels (<code>04</code> on CPU, <code>04b</code> on the GPU) → your own
+kernel running <em>inside MAX</em> as a custom op (<code>05</code>). The
+recurring experiment is <em>vector add</em> then <em>matmul</em>, kept
+deliberately trivial so each step changes exactly one thing.</p>
+<p>Once the numbered Mojo kernels make sense, the doc widens to the
+question they set up — <em>when would you write a kernel at all, vs.
+reach for a tool that already has them?</em> That&#39;s the <strong>Beyond
+Mojo</strong> section below, covering <strong>MAX</strong> (running
+models) and <strong>PyTorch</strong> (training + a framework
+baseline).</p>
+<h2 id="running-running">🏃 Running</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run mojo 00_simd_type.mojo      <span class="co"># any file; swap the name</span></span></code></pre></div>
+<p>GPU files (<code>02+</code>) require an accelerator; on this Mac
+that&#39;s Apple Metal.</p>
+<h2 id="1234-the-programs">🔢 The Programs</h2>
+<h3 id="00_simd_typemojo--the-simd-type-alone"><code>00_simd_type.mojo</code>
+— the SIMD type alone</h3>
+<p>Pokes at <code>SIMD[dtype, W]</code> with no arrays in sight, so the
+type feels concrete before it&#39;s used at scale.</p>
+<ul>
+<li><strong><code>SIMD[dtype, W]</code> is a fixed-width register
+vector</strong>, not a dynamic list. <code>W</code> is a compile-time
+power of 2.</li>
+<li><strong>Construction is 1-or-N</strong>: one value <em>splats</em>
+(broadcasts) to every lane; otherwise you must supply exactly
+<code>W</code> values. Two values for a 4-wide vector is a compile
+error.</li>
+<li><strong>One op hits all lanes at once</strong> — that&#39;s the whole
+point of SIMD. Plus reductions (<code>reduce_add</code>), masks +
+<code>select</code> (branchless per-lane choice), and casts.</li>
+<li><strong>Tie-in:</strong> a <code>Scalar[dtype]</code> <em>is</em>
+<code>SIMD[dtype, 1]</code>. A single number is just the degenerate
+vector.</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run mojo 00_simd_type.mojo</code> →
+prints each operation&#39;s result; no PASS/FAIL, just eyeball that the lane
+math matches the comments.</p>
+<h3 id="01_vecadd_unsafemojo--simd-over-a-real-array-unsaferaw"><code>01_vecadd_unsafe.mojo</code>
+— SIMD over a real array (unsafe/raw)</h3>
+<p>One CPU core walks a million-element array, adding <code>W</code>
+floats per step.</p>
+<ul>
+<li><strong><code>W = simd_width_of[dtype]()</code></strong> = register
+width ÷ element size, computed at compile time. On this Mac (128-bit
+NEON): <code>float32</code> → <code>W=4</code>, <code>float64</code> →
+<code>W=2</code>. The code adapts to the hardware instead of hardcoding
+a lane count.</li>
+<li><strong><code>comptime</code></strong> = fixed at compile time.
+<code>W</code> must be <code>comptime</code> because it&#39;s a <em>type
+parameter</em> (<code>SIMD[dtype, W]</code>), and those are resolved
+when the code is built.</li>
+<li><strong><code>alloc[T]</code> → <code>UnsafePointer</code></strong>:
+the compiler no longer tracks this memory. No bounds checks, no
+auto-free — hence the manual <code>.free()</code> and the
+<code>while i + W &lt;= N</code> guard. The unsafety is <em>deliberate
+and visible</em>.</li>
+<li><strong>Why raw here:</strong> raw pointers with
+<code>load</code>/<code>store</code> map straight to the hardware with
+zero overhead — ideal for a benchmark, and it&#39;s the exact model GPU
+kernels use (see <code>02</code>).</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run mojo 01_vecadd_unsafe.mojo</code>
+→ expect <code>RESULT: PASS</code>, <code>mismatches: 0</code>, and a
+<code>CPU time</code> in ms. That time is the baseline <code>02</code>
+compares against.</p>
+<h3 id="01_vecadd_safemojo--the-same-thing-idiomatic"><code>01_vecadd_safe.mojo</code>
+— the same thing, idiomatic</h3>
+<p>The version you&#39;d actually ship for CPU app code. Same math, safer
+memory.</p>
+<ul>
+<li><strong><code>List[T]</code> owns the buffer</strong>:
+bounds-checked access, freed automatically at end of scope. No
+<code>alloc</code>, no <code>.free()</code>.</li>
+<li><strong><code>.unsafe_ptr()</code> is a localized escape
+hatch</strong>: you still need a raw pointer for SIMD
+<code>load</code>/<code>store</code>, but only inside the hot loop, and
+the <code>List</code> still owns and frees the memory. Safe everywhere
+else.</li>
+<li><strong>The lesson of the pair (01_unsafe vs 01_safe):</strong> Mojo
+is <em>safe by default, unsafe by explicit opt-in</em> (like Rust,
+unlike C). You never get raw memory by accident — you type
+<code>Unsafe</code>. Idiomatic high-performance code = safe container
+owns the memory, raw pointer only at the compute core.</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run mojo 01_vecadd_safe.mojo</code> →
+same <code>RESULT: PASS</code> and a <code>CPU time</code> within noise
+of <code>01_unsafe</code>. The safety costs nothing here — that&#39;s the
+point.</p>
+<h3 id="02_vecadd_gpumojo--the-same-vector-add-on-the-gpu"><code>02_vecadd_gpu.mojo</code>
+— the same vector add, on the GPU</h3>
+<p>Parallelism moves from &quot;4 lanes per instruction&quot; to &quot;thousands of
+threads at once.&quot;</p>
+<ul>
+<li><strong>One thread per element</strong>, not one core over the
+array. <code>global_idx.x</code> gives each thread its element index;
+the launch rounds up to whole blocks, so the last block overhangs
+<code>N</code> — hence <code>if tid &lt; size</code>.</li>
+<li><strong>The kernel is a plain function</strong> — no CUDA-style
+decorators. <code>DeviceContext</code> allocates device buffers and
+launches it via <code>enqueue_function</code>.</li>
+<li><strong><code>TileTensor</code> + <code>layout</code></strong>
+describe the buffer shape; <code>map_to_host()</code> moves data
+host↔︎device for fill and verify.</li>
+<li><strong>The point of the experiment:</strong> the GPU is
+<em>not</em> expected to win here. Vector add is memory-bound (≈1 add
+per 2 loads, ~zero arithmetic intensity), so both backends are limited
+by memory bandwidth and the GPU also pays transfer cost. The GPU wins
+when each value is <em>reused</em> many times — which is matmul, coming
+in <code>03</code>.</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run mojo 02_vecadd_gpu.mojo</code> →
+expect <code>RESULT: PASS</code> and a <code>GPU time</code> that is
+<em>not</em> faster than <code>01_unsafe</code>&#39;s CPU time. That &quot;loss&quot;
+is the intended result; the closing note explains why, and
+<code>03</code> is where it flips.</p>
+<h3 id="03--matmul-where-the-gpu-finally-wins"><code>03</code> — matmul:
+where the GPU finally wins</h3>
+<p>Matrix multiply is the payoff. Unlike vector add, each input value is
+reused <code>O(N)</code> times, so there&#39;s real math to hide memory
+latency behind — high arithmetic intensity. This is a
+<em>sub-sequence</em> (<code>03a</code> → <code>03e</code>) showing the
+same matmul optimized in stages; the lever throughout is
+<strong>arithmetic intensity</strong> (math done per memory access and
+per barrier). <code>03a</code>–<code>03d</code> are GPU;
+<code>03e</code> is the CPU counterpart.</p>
+<ul>
+<li><strong><code>03a_matmul_naive.mojo</code> — naive.</strong> One
+thread per output element <code>C[row,col]</code>. The simplest correct
+GPU matmul, no shared-memory machinery. Re-reads every A row and B
+column from slow global memory → memory-bandwidth-bound. The honest
+starting point.</li>
+<li><strong><code>03b_matmul_tiled.mojo</code> — shared-memory
+tiling.</strong> Each block cooperatively loads a <code>TILE×TILE</code>
+block of A and B into fast on-chip <strong>shared memory</strong> once,
+then every thread reuses it <code>TILE</code> times before the next
+load. Introduces <code>barrier()</code> to sync the cooperative load.
+Moves the kernel from bandwidth-bound toward compute-bound — this is the
+optimization Apple&#39;s MPS uses.</li>
+<li><strong><code>03c_matmul_coarse.mojo</code> — register blocking /
+thread coarsening.</strong> Each thread computes an <code>8×8</code>
+micro-tile of C, holding 64 partial sums in <strong>registers</strong>,
+doing ~512 MACs per barrier (~32× more work per sync than simple
+tiling). The last big lever before you&#39;re near hardware peak. Requires
+<code>N % BM == 0</code>, <code>N % BK == 0</code> (no ragged edges, for
+speed).</li>
+<li><strong><code>03d_matmul_check.mojo</code> — correctness.</strong>
+The benchmark&#39;s all-ones × all-twos fill makes every
+<code>C = 2N</code>, which <em>hides</em> index bugs. This uses small,
+non-symmetric inputs and checks the GPU result against a CPU
+triple-loop, element by element — so row/col or block/tile mix-ups
+actually show up.</li>
+<li><strong><code>03e_matmul_cpu.mojo</code> — the CPU counterpart (no
+GPU needed).</strong> Same <code>C = A @ B</code>, but for machines with
+no Mojo GPU backend (e.g. Aurora&#39;s Intel Max GPUs). The CPU&#39;s two levers
+replace shared memory + registers: <strong>wide SIMD</strong>
+(<code>W = simd_width_of[f32]</code> — 4 on NEON, 16 on AVX-512) and
+<strong>many cores</strong> (<code>parallelize</code> over rows). Runs
+the same three-stage ladder — naive → SIMD → parallel — reporting
+GFLOP/s and checking each stage against the naive reference. The
+naive→SIMD jump is the vector width; the SIMD→parallel jump is the core
+count.</li>
+</ul>
+<p><strong>Run</strong> (naive → tiled → coarse; edit <code>N</code> at
+the top to sweep sizes):</p>
+<pre><code>uv run mojo 03a_matmul_naive.mojo
+uv run mojo 03b_matmul_tiled.mojo
+uv run mojo 03c_matmul_coarse.mojo
+uv run mojo 03d_matmul_check.mojo   # PASS/FAIL, run after changing the coarse kernel
+uv run mojo 03e_matmul_cpu.mojo     # CPU ladder; GFLOP/s + PASS/FAIL, no GPU required</code></pre>
+<p>Expect each GPU stage faster than the last at <code>N=2048</code>,
+and — unlike <code>02</code> — the GPU comfortably beating a CPU. Watch
+the ms/pass drop as arithmetic intensity climbs. <code>03e</code> stands
+alone as the CPU story for GPU-less hardware.</p>
+<h3 id="04_train_mlpmojo--training-a-net-in-pure-mojo-pure-mojo-capstone"><code>04_train_mlp.mojo</code>
+— training a net in pure Mojo (pure-Mojo capstone)</h3>
+<p>The whole curriculum assembled: a 2-layer MLP
+(<code>2 → H → 1</code>) trained by hand to fit the radius
+<code>r = √(x₀²+x₁²)</code>. No framework, no autograd — since MAX
+doesn&#39;t train and we&#39;re not using Nabla here, <strong>you are the
+autograd</strong>: every gradient is derived on paper and coded by
+hand.</p>
+<ul>
+<li><strong>Forward is <code>03</code>&#39;s matmul</strong> —
+<code>X@W1 → relu → a1@W2</code>. The kernel you optimized becomes a
+layer.</li>
+<li><strong>Backward is more matmul</strong> — the gradients are
+transposed matmuls (<code>a1ᵀ@dz2</code>, <code>Xᵀ@dz1</code>,
+<code>dz2@W2ᵀ</code>) plus an elementwise relu-gradient. The same
+operation, run backward.</li>
+<li><strong>Kept naive</strong> (triple loops, <code>N=256</code>):
+<code>03</code> already covered making matmul fast; here the lesson is
+the <em>training math</em>, not GFLOP/s. GPU-izing it = swapping in the
+<code>03</code> kernels.</li>
+<li><strong>Why it matters for the ecosystem question:</strong> training
+with zero framework fragility — the honest counterpart to the (alpha,
+nightly-pinned) Nabla path. It shows exactly what MAX&#39;s missing training
+API costs you: you write the gradients yourself.</li>
+</ul>
+<p><strong>Correctness — <code>train_mlp_reference.py</code>:</strong>
+the identical setup in NumPy, seeded from the same LCG so both start
+from bit-identical data and weights. Verified — the two loss curves
+match to 6 figures (<code>2.178 → 0.000561</code> over 300 epochs); that
+agreement is the proof the by-hand Mojo backprop is right.</p>
+<p><strong>Run:</strong> <code>uv run mojo 04_train_mlp.mojo</code> (and
+<code>python train_mlp_reference.py</code> for the NumPy ground truth) →
+expect matching loss trajectories.</p>
+<h3 id="04b_train_mlp_gpumojo--the-same-training-on-the-gpu"><code>04b_train_mlp_gpu.mojo</code>
+— the same training, on the GPU</h3>
+<p><code>04</code> moved onto the accelerator: every forward/backward
+step is a GPU kernel, and the matmuls <strong>reuse <code>03</code>&#39;s
+one-thread-per-output design</strong> — generalized from square
+<code>N×N</code> to the rectangular and transposed shapes backprop needs
+(<code>A@B</code>, <code>Aᵀ@B</code>, <code>A@Bᵀ</code>).</p>
+<ul>
+<li><strong>Verified:</strong> same LCG and math as <code>04</code>, so
+it prints the identical loss curve (<code>2.178 → 0.000561</code>,
+bit-for-bit here). Matching numbers = the GPU kernels — including the
+transposed-matmul gradients — are correct.</li>
+<li><strong>~15 kernel launches per epoch:</strong> 2 matmuls forward; 3
+matmuls + elementwise + column-sum reductions backward; 4 SGD
+updates.</li>
+<li><strong>The <code>02</code> lesson, measured.</strong> Both files
+print <code>train time</code> (ms/epoch, warmup excluded). At the tiny
+default <code>N=256, H=16</code> the GPU is ~<strong>30× slower</strong>
+(0.7 vs 0.024 ms/epoch) — ~15 kernel launches per epoch, almost pure
+overhead. Bump to <code>N=8192, H=1024</code> and it flips: GPU
+~<strong>15× faster</strong> (7.8 vs 115 ms/epoch on the M4 Max),
+identical loss on both. That crossover is the whole arithmetic-intensity
+/ parallelism story in one experiment. Structural takeaway: training —
+forward <em>and</em> backward — is just matmuls, and <code>03</code>&#39;s
+kernel runs all of it.</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run mojo 04b_train_mlp_gpu.mojo</code>
+→ same loss trajectory as <code>04</code> and the NumPy reference.</p>
+<h3 id="05_custom_max_oppy--custom_op_kernelsrelumojo--the-capstone-your-mojo-op-inside-max"><code>05_custom_max_op.py</code>
+(+ <code>custom_op_kernels/relu.mojo</code>) — the capstone: your Mojo
+op inside MAX</h3>
+<p>Where the whole journey converges. The <code>relu</code> you
+hand-wrote in <code>04</code>/<code>04b</code> is registered as a
+<strong>custom MAX operation</strong>
+(<code>@compiler.register(&quot;relu&quot;)</code> in
+<code>custom_op_kernels/relu.mojo</code>) and run as a node in a MAX
+graph. This is the concrete answer to <em>why Mojo is a language, not
+just a demo</em>: when a shipped op doesn&#39;t fit, you write the kernel in
+Mojo and MAX compiles and runs it — here on the Metal GPU.</p>
+<ul>
+<li><strong>Two halves.</strong>
+<code>custom_op_kernels/relu.mojo</code> is the Mojo side — one
+<code>@compiler.register</code> struct whose <code>execute</code> method
+applies an elementwise rule (<code>max(x, 0)</code>) via
+<code>foreach</code>. <code>05_custom_max_op.py</code> is the driver —
+it builds a one-op graph with <code>ops.custom(name=&quot;relu&quot;, …)</code>,
+points MAX at the kernel dir with <code>custom_extensions=[…]</code>,
+compiles via <code>InferenceSession</code>, and executes.</li>
+<li><strong>Verified:</strong> mixed-sign input → output is exactly
+<code>max(x, 0)</code> → <code>RESULT: PASS</code>, on
+<code>device: GPU (Metal)</code>.</li>
+<li><strong>The arc closed:</strong> in <code>00</code>–<code>04b</code>
+you <em>wrote</em> kernels; in the MAX tier (below) you <em>ran</em>
+prebuilt models; <code>05</code> is where they meet — MAX running
+<em>your</em> Mojo kernel. That&#39;s the endgame of the &quot;should we move to
+the Mojo ecosystem?&quot; question: yes — you can extend the engine itself,
+in Mojo.</li>
+</ul>
+<p><strong>Run:</strong> <code>uv run python 05_custom_max_op.py</code>
+→ prints input, <code>relu(x)</code>, expected, <code>PASS</code>.</p>
+<h2 id="rocket-beyond-mojo-max-and-pytorch">🚀 Beyond Mojo: MAX and
+PyTorch</h2>
+<p>Once the Mojo kernels make sense, the real question is <em>when you&#39;d
+write a kernel at all vs. reach for a tool that already has them.</em>
+Three tiers, lowest to highest:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Tool</th>
+<th>You provide</th>
+<th>It provides</th>
+<th>Files</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Write the kernel</td>
+<td><strong>Mojo</strong></td>
+<td>the GPU code</td>
+<td>a language that compiles to Metal / CUDA / …</td>
+<td><code>00</code>–<code>04b</code></td>
+</tr>
+<tr>
+<td>Run a model</td>
+<td><strong>MAX</strong></td>
+<td>a model name + a prompt</td>
+<td>prebuilt, optimized inference</td>
+<td><code>max_generate.sh</code>, <code>max_serve_litellm.sh</code></td>
+</tr>
+<tr>
+<td>Train a model</td>
+<td><strong>PyTorch</strong></td>
+<td>a model + data</td>
+<td>autograd, optimizers, MPS kernels</td>
+<td><code>train_torch_mlp.py</code>, <code>bench_torch.py</code></td>
+</tr>
+</tbody>
+</table>
+<p>The dividing lines <em>are</em> the &quot;when Mojo vs when MAX&quot;
+answer:</p>
+<ul>
+<li><strong>MAX is inference/deployment, not training — at least
+today.</strong> The installed macOS build exposes graph building,
+<code>nn</code> inference layers, and an inference engine, but no
+autograd and no <code>.backward()</code>; and per Modular (mid-2026)
+training isn&#39;t first-class in MAX on <em>any</em> platform yet —
+Lattner: &quot;not focused on solving training yet, maybe we&#39;ll get there.&quot;
+Hand MAX a trained model and it serves it fast; to <em>learn</em>
+weights you drop to PyTorch — or to <strong>Nabla</strong>, the
+Mojo-native autodiff layer built on MAX (see below). (Watch the Modular
+changelog — this is roadmap, not a law.)</li>
+<li><strong>Mojo is for when no shipped kernel fits</strong> — a custom
+op, a new architecture, an accelerator the frameworks don&#39;t cover.
+Otherwise the framework&#39;s kernel (see <code>bench_torch.py</code>) is
+already near hardware peak and took you one line.</li>
+</ul>
+<h3 id="rocket-max--running-prebuilt-models-metal-no-mojo">🚀 MAX —
+running prebuilt models (Metal, no Mojo)</h3>
+<p>Same engine, two front doors. Neither involves Mojo: MAX runs its own
+optimized kernels on the Apple GPU; you pick a model and a prompt. Model
+defaults to Qwen2.5-0.5B; the first run compiles it (~20–60s), then it&#39;s
+fast.</p>
+<ul>
+<li><strong><code>max_generate.sh</code> — one-shot generation.</strong>
+<code>max generate</code> loads the model, runs one prompt, prints the
+completion, exits. The <em>batch / offline</em> door: quick checks,
+scripted runs.</li>
+<li><strong><code>max_serve_litellm.sh</code> — a serving
+endpoint.</strong> <code>max serve</code> keeps the model resident
+behind an OpenAI-compatible HTTP endpoint; the script calls it with
+<code>litellm</code>, then shuts it down. The <em>production
+serving</em> door — the &quot;one command, faster than vLLM&quot; story, and the
+natural Day-1 hook for a class.</li>
+</ul>
+<p><strong>Run:</strong> <code>./max_generate.sh</code> or
+<code>./max_serve_litellm.sh</code> (each <code>cd</code>s to its own
+dir; server logs land in <code>max_serve.log</code>).</p>
+<h3 id="microscope-pytorch--training-and-the-framework-yardstick">🔬
+PyTorch — training, and the framework yardstick</h3>
+<p>The tier MAX doesn&#39;t cover. Both run from an env that has
+<code>torch</code> (your base env), <strong>not</strong>
+<code>MOJO_CURRICULUM/.venv</code> (which holds MAX). Both use MPS — the
+same Apple GPU the Mojo kernels target, reached through a framework
+instead of hand-written code.</p>
+<ul>
+<li><strong><code>train_torch_mlp.py</code> — the training
+demo.</strong> A tiny MLP learns to separate two concentric rings of
+points. Its four-line loop (<code>zero_grad</code> → forward+loss →
+<code>backward</code> → <code>step</code>) is exactly what MAX has no
+API for. Nonlinear on purpose: delete the <code>ReLU</code> and accuracy
+collapses to ~50% — which is <em>why</em> the hidden layer exists.
+<strong>Run:</strong> <code>python train_torch_mlp.py</code> → expect
+final accuracy ~99%.</li>
+<li><strong><code>bench_torch.py</code> — the matmul baseline for
+<code>03</code>.</strong> Times PyTorch matmul on CPU and MPS at the
+same <code>N=2048</code> as the Mojo matmul files. This is the &quot;someone
+already optimized this kernel&quot; number your hand-written <code>03*</code>
+kernels are chasing — and the honest reason to reach for a framework
+unless you have a reason not to. <strong>Run:</strong>
+<code>python bench_torch.py</code> (or
+<code>python bench_torch.py 4096 50</code> to sweep sizes).</li>
+</ul>
+<h3 id="fire-nabla--training-inside-the-mojo-ecosystem-alpha">🔥 Nabla —
+training <em>inside</em> the Mojo ecosystem (alpha)</h3>
+<p>The most consequential stop on the journey, because it answers the
+question the whole &quot;could we move to Mojo?&quot; project is asking. We
+hand-rolled training in <code>04</code>/<code>04b</code> to prove it&#39;s
+<em>possible</em> in pure Mojo — but nobody wants to derive gradients by
+hand for a real model. <strong>Nabla</strong> is the ecosystem&#39;s answer:
+a Mojo-native autodiff framework
+(<code>grad</code>/<code>vmap</code>/<code>jit</code>, PyTorch-style
+modules) built <em>on</em> Mojo + MAX. It is precisely the &quot;custom Mojo
+kernels + automatic differentiation&quot; convergence — what <code>04b</code>
+does by hand, done for you, and what Chris Lattner points to when asked
+about training in the stack.</p>
+<ul>
+<li><strong><code>train_nabla_mlp.py</code></strong> — the same
+radius-regression MLP as <code>04</code>, but Nabla&#39;s autograd runs the
+backward pass. This is what training <em>feels like</em> with a
+framework, entirely within the Mojo/MAX world — no PyTorch, no leaving
+the ecosystem.</li>
+<li><strong>Why it belongs next to our roll-your-own:</strong>
+<code>04</code>/<code>04b</code> are what training <em>costs</em>
+without a framework; Nabla is what it <em>feels like</em> with one.
+Together they bracket the switch question. We keep the by-hand versions
+because they teach the mechanics and never break; Nabla shows where the
+ecosystem is <em>heading</em>.</li>
+<li><strong>The reality check — itself part of the lesson.</strong>
+Nabla is <strong>alpha</strong> and pins to Modular
+<strong>nightly</strong>, so it gets its own venv
+(<code>setup_nabla_venv.sh</code> → <code>.venv-nabla</code>, isolated
+from the stable MAX in <code>.venv</code>). Getting it to run took
+version-pinning: its latest release ships an <em>unpinned</em>
+<code>modular</code> dependency, so a bare install pulls a too-new
+nightly and <code>backward()</code> dies with
+<code>ModuleOp has no attribute &#39;operation&#39;</code>. The setup script
+pins <code>modular</code> back to Nabla&#39;s build era. That fragility is
+real data for &quot;is the ecosystem ready?&quot; — the <em>idea</em> is
+compelling, the <em>packaging</em> is young.</li>
+</ul>
+<p><strong>Run:</strong> <code>./setup_nabla_venv.sh</code> (once), then
+<code>.venv-nabla/bin/python train_nabla_mlp.py</code> → loss falls
+toward 0 on the same task as <code>04</code>.</p>
+<h2 id="compass-recurring-ideas">🧭 Recurring Ideas</h2>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Where it shows up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>comptime</code> = resolved at build time (needed for type
+params)</td>
+<td><code>W</code>, <code>N</code>, <code>dtype</code> everywhere</td>
+</tr>
+<tr>
+<td>SIMD width adapts to hardware</td>
+<td><code>simd_width_of</code> in <code>01</code></td>
+</tr>
+<tr>
+<td>Safe by default, <code>Unsafe</code>/<code>.unsafe_ptr()</code> =
+explicit opt-in</td>
+<td><code>01_unsafe</code> vs <code>01_safe</code></td>
+</tr>
+<tr>
+<td>Same problem, different parallelism model</td>
+<td>SIMD (<code>01</code>) vs threads (<code>02</code>)</td>
+</tr>
+<tr>
+<td>Arithmetic intensity decides if the GPU wins</td>
+<td><code>02</code> note → <code>03</code> matmul</td>
+</tr>
+<tr>
+<td>Write a kernel vs. use a shipped one</td>
+<td>Mojo <code>03</code> vs PyTorch <code>bench_torch.py</code></td>
+</tr>
+<tr>
+<td>Inference vs. training is a tool boundary</td>
+<td>MAX (serve/generate) vs PyTorch <code>train_torch_mlp.py</code></td>
+</tr>
+<tr>
+<td>Training = matmul forward + backward; you are the autograd</td>
+<td><code>04</code> (CPU), <code>04b</code> (GPU)</td>
+</tr>
+<tr>
+<td>Same matmul kernel runs forward, backward, and both tiers</td>
+<td><code>03</code> → <code>04b</code> reuse</td>
+</tr>
+<tr>
+<td>Training with a framework vs. by hand</td>
+<td>Nabla vs <code>04</code>/<code>04b</code></td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
