@@ -1,0 +1,14 @@
+
+---- links ----
+
+1. TurboVec (by Ryan Codrai) - The open-source Rust implementation:
+https://github.com/ryancodrai/turbovec (Note: adjust username if his exact GitHub handle varies)
+
+2. Qdrant Vector Database - Mentioned for integrating the rotation trick natively:
+https://github.com/qdrant/qdrant
+
+3. TurboQuant Paper - Google's original research paper:
+(Search "TurboQuant Google Research arXiv" to link the exact PDF)
+
+4. FAISS (Meta) - The baseline Vector Search library it was compared against:
+https://github.com/facebookresearch/faiss

@@ -1,0 +1,7 @@
+# Python deps for the comparison harness (compare/*.py).
+# The Mojo implementation itself has no Python dependency.
+numpy>=1.20
+datasets>=2.0        # fetch_data.py streams the DBpedia embeddings from Hugging Face
+faiss-cpu>=1.7       # faiss_baseline.py
+scipy>=1.10          # codebook / reference cross-checks
+maturin>=1.12,<2.0   # only needed to build Ryan's Rust turbovec bindings (turbovec_baseline.py)

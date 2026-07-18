@@ -1,0 +1,17 @@
+# --- Large dataset files (regenerate with compare/fetch_data.py) ---
+data/*.f32
+data/*.npy
+data/results/*.i32
+
+# --- Cloned third-party reference repo (clone from upstream instead) ---
+ryan_turbovec/
+
+# --- Build / cache artifacts ---
+**/target/
+__pycache__/
+*.pyc
+*.so
+/tmp/
+
+# --- OS cruft ---
+.DS_Store
