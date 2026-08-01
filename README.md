@@ -1,7 +1,8 @@
 # 🔥 MOJO_STUFF
 
 Experiments in **Mojo** and the **Modular (MAX)** stack on Apple Silicon — a
-learning curriculum, a from-scratch agent, and notes on porting to HPC hardware.
+learning curriculum, a from-scratch agent, a head-to-head performance benchmark
+against Rust and C++, and notes on porting to HPC hardware.
 Each subdirectory is self-contained and has its own README with details.
 
 ## 📚 Subdirectories
@@ -20,6 +21,24 @@ OpenAI-compatible endpoint and runs shell tools the model asks for. Networking,
 JSON, HTTP, and SSE streaming are all hand-written Mojo; the point is to show off
 the language. macOS/Apple Silicon.
 
+### `MOJO_TURBOQUANT_TURBOVEC/`
+A from-scratch **100% Mojo** reimplementation of Google's **TurboQuant** — a
+*data-oblivious* vector quantizer for approximate nearest-neighbor search (fixed
+random rotation + fixed Lloyd–Max codebook, so it needs no training pass over the
+data). The project benchmarks it head-to-head against Ryan Codrai's Rust
+[`turbovec`](https://github.com/ryancodrai/turbovec) and Meta's **FAISS** on the
+same dataset, metric, and memory budget (DBpedia OpenAI-1536, 100k vectors,
+768 B/vector), to answer whether a clean-room Mojo port can match a mature,
+BLAS-backed Rust crate. It can: equal recall (0.959 vs 0.964 @1), **faster index
+build than Rust** (0.7 s vs 0.9 s) and ~23× faster than FAISS, with search within
+2.5× of Rust and ~10× faster than FAISS.
+
+Beyond the numbers, it's a record of *how* the Mojo caught up — a FastScan SIMD
+scan kernel and a register-blocked GEMM micro-kernel written in-language with no
+BLAS dependency — with pre-optimization snapshots (`BAK_V1/`, `BAK_V2/`) kept so
+the before/after of each fix is inspectable, plus a list of Mojo 1.0 gotchas found
+the hard way. Includes a self-contained HTML writeup in `talk/`.
+
 ### `MOJO_POLARIS_AURORA/`
 Working directory for getting the Mojo/MAX stack running on Argonne's HPC
 machines — `POLARIS/` (NVIDIA A100, CUDA backend) and `AURORA/` (Intel Max GPU,
@@ -33,3 +52,7 @@ Each subdirectory uses [uv](https://docs.astral.sh/uv/), which fetches the Mojo
 toolchain automatically — you don't need to install Mojo separately. From a
 subdirectory, run programs with `uv run mojo run <file>.mojo`. See each README
 for specifics.
+
+Exception: `MOJO_TURBOQUANT_TURBOVEC/` expects an installed Mojo 1.0.0b2 toolchain
+(`mojo build …`), plus a Python venv for the comparison harness and Rust only if
+you want the `turbovec` baseline — see its README.
