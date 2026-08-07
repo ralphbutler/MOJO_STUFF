@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🕵️ Hide &amp; Seek — Replay (MOJO_WORLD_MODELS)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif;
+         background: #0e1116; color: #e6e6e6; overflow: hidden; }
+  #app { position: fixed; inset: 0; }
+  #hud { position: fixed; left: 12px; top: 12px; padding: 12px 14px;
+         background: rgba(20,24,31,.82); border: 1px solid #2a3240;
+         border-radius: 10px; backdrop-filter: blur(6px); max-width: 320px; }
+  #hud h1 { font-size: 14px; margin: 0 0 6px; font-weight: 600; }
+  #hud .meta { font-size: 12px; color: #9aa6b5; line-height: 1.5; }
+  .controls { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+              display: flex; gap: 10px; align-items: center; padding: 10px 14px;
+              background: rgba(20,24,31,.9); border: 1px solid #2a3240;
+              border-radius: 12px; }
+  .controls button { background: #1d2532; color: #e6e6e6; border: 1px solid #313c4d;
+                     border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  .controls button:hover { background: #273141; }
+  #scrub { width: 320px; accent-color: #4f8cff; }
+  #drop { position: fixed; inset: 0; display: none; align-items: center;
+          justify-content: center; background: rgba(10,13,18,.7);
+          border: 3px dashed #4f8cff; font-size: 20px; color: #cfe0ff; z-index: 10; }
+  .badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+           margin-right: 4px; vertical-align: middle; }
+  #file { font-size: 12px; }
+  a { color: #6fa8ff; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud">
+    <h1>🕵️ Hide &amp; Seek — Replay</h1>
+    <div class="meta" id="meta">loading sample…</div>
+    <div class="meta" style="margin-top:8px">
+      <span class="badge" style="background:#4f8cff"></span>hider
+      <span class="badge" style="background:#ff5a5a;margin-left:8px"></span>seeker
+      &nbsp;·&nbsp;<span style="color:#ffd24a">■</span> box
+      &nbsp;<span style="color:#9aa6b5">▰</span> ramp
+    </div>
+    <div class="meta" style="margin-top:8px">
+      <input type="file" id="file" accept="application/json" />
+    </div>
+    <div class="meta" style="margin-top:6px;color:#7f8b9a">
+      or drag a trace JSON anywhere · drag to orbit · scroll to zoom
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="play">⏸ pause</button>
+    <input type="range" id="scrub" min="0" max="0" value="0" step="1" />
+    <span id="tlabel" class="meta">0 / 0</span>
+    <button id="speed">1×</button>
+  </div>
+
+  <div id="drop">Drop trace JSON to load</div>
+
+  <script type="importmap">
+  { "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }}
+  </script>
+  <script type="module" src="./viewer.js"></script>
+</body>
+</html>

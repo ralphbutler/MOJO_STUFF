@@ -39,6 +39,17 @@ BLAS dependency — with pre-optimization snapshots (`BAK_V1/`, `BAK_V2/`) kept 
 the before/after of each fix is inspectable, plus a list of Mojo 1.0 gotchas found
 the hard way. Includes a self-contained HTML writeup in `talk/`.
 
+### `MOJO_WORLD_MODELS/`
+A **world model** over a hide-and-seek gridworld: learn the transition function
+from traces, then discard the real simulator and run agents inside the learned
+one — with both compute-bound halves (simulator, dream loop) written in **Mojo**.
+The deliverable is a measurement of the small-sequential-branchy regime, where
+BLAS has no edge: the Mojo sim is byte-exact with the Python reference and
+**300× faster** on 12 threads, and the Mojo dream loop beats PyTorch/MPS below
+~32 concurrent rollouts. It also measures what the dream *costs* — a controller
+evolved in the dream transfers only 2.4% of the gain of one evolved in reality,
+at 98× the cost. Includes a side-by-side browser viewer of reality vs. dream.
+
 ### `MOJO_POLARIS_AURORA/`
 Working directory for getting the Mojo/MAX stack running on Argonne's HPC
 machines — `POLARIS/` (NVIDIA A100, CUDA backend) and `AURORA/` (Intel Max GPU,

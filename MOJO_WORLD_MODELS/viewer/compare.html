@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🌍 Reality vs Dream — MOJO_WORLD_MODELS</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b0e13; color: #e6e6e6;
+               font-family: ui-sans-serif, system-ui, sans-serif; overflow: hidden; }
+  #bar { height: 72px; display: flex; align-items: center; gap: 18px;
+         padding: 0 18px; border-bottom: 1px solid #232b38;
+         background: #10141b; }
+  #bar h1 { font-size: 15px; margin: 0; font-weight: 600; white-space: nowrap; }
+  #bar .sub { font-size: 12px; color: #8b97a6; margin-top: 3px; }
+  .stat { font-size: 12px; color: #9aa6b5; border-left: 1px solid #232b38;
+          padding-left: 18px; line-height: 1.5; }
+  .stat b { color: #e6e6e6; font-size: 15px; }
+  .warn { color: #ffb454; }
+  #panes { position: absolute; top: 72px; left: 0; right: 0; bottom: 0;
+           display: grid; grid-template-columns: 1fr 1fr; }
+  .pane { position: relative; border-right: 1px solid #232b38; }
+  .pane:last-child { border-right: none; }
+  .pane iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .tag { position: absolute; right: 14px; top: 14px; z-index: 5;
+         font-size: 12px; font-weight: 600; letter-spacing: .04em;
+         padding: 6px 12px; border-radius: 999px; pointer-events: none; }
+  .real  { background: rgba(79,140,255,.16); border: 1px solid #4f8cff; color: #a8c8ff; }
+  .dream { background: rgba(255,180,84,.14); border: 1px solid #ffb454; color: #ffd7a1; }
+  #note { position: absolute; left: 18px; bottom: 14px; z-index: 5; max-width: 520px;
+          font-size: 12px; color: #7f8b9a; background: rgba(11,14,19,.86);
+          border: 1px solid #232b38; border-radius: 8px; padding: 10px 12px; }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <div>
+      <h1>🌍 Reality vs Dream</h1>
+      <div class="sub">same episode, same actions — only the dynamics differ</div>
+    </div>
+    <div class="stat">exact for<br><b id="div">—</b> steps</div>
+    <div class="stat">episode<br><b id="steps">—</b> steps</div>
+    <div class="stat">seed<br><b id="seed">—</b></div>
+    <div class="stat warn" id="hint" style="border-left:1px solid #232b38">
+      scrub either pane — they share a frame index
+    </div>
+  </div>
+
+  <div id="panes">
+    <div class="pane">
+      <div class="tag real">REALITY — Mojo sim</div>
+      <iframe src="./index.html?trace=./trace_real.json"></iframe>
+    </div>
+    <div class="pane">
+      <div class="tag dream">DREAM — learned model</div>
+      <iframe src="./index.html?trace=./trace_dream.json"></iframe>
+    </div>
+  </div>
+
+  <div id="note">
+    Both panes replay the <b>same action sequence</b> from the <b>same spawn state</b>.
+    The left pane steps the real simulator; the right steps a 5.3&nbsp;M-parameter MLP
+    closed-loop, feeding each prediction back as its own next input. Watch the right
+    pane drift — median divergence across held-out episodes is 49 steps
+    (see <code>RESULTS_M5.md</code>).
+  </div>
+
+<script>
+fetch("./compare_meta.json").then(r => r.json()).then(m => {
+  document.getElementById("div").textContent = m.diverged_after;
+  document.getElementById("steps").textContent = m.steps;
+  document.getElementById("seed").textContent = m.seed;
+  document.getElementById("hint").innerHTML = m.diverged_after >= m.steps
+    ? "dream stayed exact for the whole episode"
+    : "dream first differs at frame <b>" + (m.diverged_after + 1) + "</b>";
+}).catch(() => {
+  document.getElementById("hint").textContent =
+    "run: python python/make_trace.py";
+});
+</script>
+</body>
+</html>

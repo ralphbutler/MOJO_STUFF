@@ -1,0 +1,24 @@
+[project]
+name = "mojo-world-models"
+version = "0.1.0"
+description = "World model over the HIDE_SEEK gridworld, with the sim and the dream rollout in Mojo."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # PINNED, not >=. Mojo's syntax churns hard between releases, and with
+    # prerelease="allow" a floating constraint would silently pull the next
+    # beta into a fresh .venv — breaking the build *after* M1 parity passed,
+    # which reads as a logic regression rather than a toolchain change.
+    # Upgrading is a deliberate act: bump this, then run python/parity.py.
+    # That gate is the upgrade regression test.
+    "mojo==1.0.0b2",
+
+    # M4/M5 Python side: the dynamics model, its training loop, and the
+    # PyTorch half of the dream numerical gate. Floating is fine here —
+    # nothing in the parity story depends on the torch version.
+    "torch>=2.4",
+    "numpy>=1.26",
+]
+
+[tool.uv]
+prerelease = "allow"

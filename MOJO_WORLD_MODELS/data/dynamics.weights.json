@@ -1,0 +1,178 @@
+{
+  "layers": [
+    {
+      "in": 208,
+      "out": 1536
+    },
+    {
+      "in": 1536,
+      "out": 1536
+    },
+    {
+      "in": 1536,
+      "out": 1536
+    },
+    {
+      "in": 1536,
+      "out": 180
+    }
+  ],
+  "activation": "relu",
+  "in_dim": 208,
+  "out_dim": 180,
+  "state_dim": 26,
+  "n_agents": 2,
+  "n_objs": 4,
+  "grid": 12,
+  "turns": 100,
+  "prep_turns": 50,
+  "n_actions": 13,
+  "fields": [
+    {
+      "name": "a0.x",
+      "col": 2,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "a0.y",
+      "col": 3,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "a0.fx",
+      "col": 4,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "a0.fy",
+      "col": 5,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "a0.carry",
+      "col": 6,
+      "classes": 5,
+      "shift": 1
+    },
+    {
+      "name": "a0.seen",
+      "col": 7,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "a1.x",
+      "col": 8,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "a1.y",
+      "col": 9,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "a1.fx",
+      "col": 10,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "a1.fy",
+      "col": 11,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "a1.carry",
+      "col": 12,
+      "classes": 5,
+      "shift": 1
+    },
+    {
+      "name": "a1.seen",
+      "col": 13,
+      "classes": 3,
+      "shift": 1
+    },
+    {
+      "name": "o0.x",
+      "col": 14,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o0.y",
+      "col": 15,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o0.locked",
+      "col": 16,
+      "classes": 2,
+      "shift": 0
+    },
+    {
+      "name": "o1.x",
+      "col": 17,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o1.y",
+      "col": 18,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o1.locked",
+      "col": 19,
+      "classes": 2,
+      "shift": 0
+    },
+    {
+      "name": "o2.x",
+      "col": 20,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o2.y",
+      "col": 21,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o2.locked",
+      "col": 22,
+      "classes": 2,
+      "shift": 0
+    },
+    {
+      "name": "o3.x",
+      "col": 23,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o3.y",
+      "col": 24,
+      "classes": 12,
+      "shift": 0
+    },
+    {
+      "name": "o3.locked",
+      "col": 25,
+      "classes": 2,
+      "shift": 0
+    }
+  ],
+  "dtype": "<f4",
+  "layout": "per Linear: weight [out,in] row-major, then bias [out]"
+}
