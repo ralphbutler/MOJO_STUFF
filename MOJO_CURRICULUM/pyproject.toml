@@ -5,8 +5,11 @@ description = "Mojo learning and experiments"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "max[serve]>=26.4.0",
-    "mojo>=1.0.0b2",
+    # PINNED, never >=. A floating pin silently jumped this project from
+    # Mojo 1.0.0b2 to 1.0.0 and broke every GPU file. Upgrading is a
+    # deliberate act: bump these, then re-run the whole ladder.
+    "max[serve]==26.5.0",   # Mojo 1.0.0 ships as part of Modular 26.5
+    "mojo==1.0.0",
 ]
 
 [tool.uv]

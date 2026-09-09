@@ -13,9 +13,8 @@
 from std.math import ceildiv
 from std.sys import has_accelerator
 from std.gpu import thread_idx, block_idx
-from std.gpu.sync import barrier
-from std.gpu.memory import AddressSpace
-from std.gpu.host import DeviceContext
+from max.gpu import barrier
+from max.gpu.host import DeviceContext
 from std.time import perf_counter_ns
 from layout import TileTensor, row_major, stack_allocation
 

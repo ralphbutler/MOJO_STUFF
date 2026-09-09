@@ -17,11 +17,9 @@
 from std.math import ceildiv
 from std.sys import has_accelerator
 from std.gpu import thread_idx, block_idx
-from std.gpu.sync import barrier
-from std.gpu.memory import AddressSpace
-from std.gpu.host import DeviceContext
+from max.gpu import barrier
+from max.gpu.host import DeviceContext
 from std.time import perf_counter_ns
-from std.collections import InlineArray
 from layout import TileTensor, row_major, stack_allocation
 
 comptime dtype = DType.float32
@@ -68,10 +66,15 @@ def matmul_coarse(
     var sb = stack_allocation[dtype, address_space = AddressSpace.SHARED](bs_layout)
     comptime assert sa.flat_rank == 2 and sb.flat_rank == 2
 
-    # Per-thread register tiles (live in registers, indexed by comptime loops).
-    var acc = InlineArray[Scalar[dtype], TM * TN](fill=0)
-    var reg_m = InlineArray[Scalar[dtype], TM](fill=0)
-    var reg_n = InlineArray[Scalar[dtype], TN](fill=0)
+    # Per-thread register tiles. These MUST live in registers — that is the whole
+    # point of the coarse kernel. Under Mojo 1.0 an `Array`/`InlineArray` of scalars
+    # here gets spilled to memory by the Metal backend and the kernel collapses to
+    # naive speed (~6.9 ms vs 4.0 ms, measured 2026-09-09). A SIMD vector of the same
+    # length is a single register-resident value, so we use that instead; the indexing
+    # below is unchanged because the comptime loops index it with constants.
+    var acc = SIMD[dtype, TM * TN](0)
+    var reg_m = SIMD[dtype, TM](0)
+    var reg_n = SIMD[dtype, TN](0)
 
     for k0 in range(0, N, BK):
         # --- stage one BK-deep slab into shared memory ---

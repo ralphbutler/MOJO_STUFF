@@ -8,12 +8,12 @@ Each subdirectory is self-contained and has its own README with details.
 ## ⚠️ Two Mojo versions in here — check before copying code between projects
 
 Mojo changed substantially between `1.0.0b2` and `1.0.0`, and **b2 code will not compile on
-1.0.0**. Only `MOJO_TERNARY` is on the release:
+1.0.0**. Two projects are on the release; the rest are still on b2:
 
 | project | Mojo |
 |---|---|
 | `MOJO_TERNARY` | **`1.0.0`** |
-| `MOJO_CURRICULUM` | `1.0.0b2` |
+| `MOJO_CURRICULUM` | **`1.0.0`** (migrated 2026-09-09) |
 | `MOJO_HARNESS` | `1.0.0b2` |
 | `MOJO_WORLD_MODELS` | `1.0.0b2` |
 | `MOJO_POLARIS_AURORA` | `1.0.0b2` |
@@ -35,16 +35,35 @@ The differences that actually bite, all found by compiling:
 | `alloc[T](count)` | `alloc(Layout[T](count=n))` → `Allocation[T]` |
 | `read` (argument convention) | `imm` |
 | `InlineArray[T, N]` | `Array[T, N]` |
+| `import compiler` / `@compiler.register("op")` | `from extensibility import register` / `@register("op")` — the top-level `compiler` module is gone |
 
 Device-side GPU symbols (`global_idx`, `thread_idx`, `block_idx`) stayed in `std.gpu` in both.
-Two 1.0.0 traps worth knowing: **scalar GPU kernel arguments must be fixed-width** (`Int32` — an
-`Int` fails with *"does not conform to DevicePassable"*), and **a `Pointer[T, MutUntrackedOrigin]`
-struct field is a silent use-after-free**, because an untracked origin does not extend the owner's
-lifetime (reported as `modular/skills#11`; hold an `Allocation` instead).
+
+Traps worth knowing, each found by compiling:
+
+- **Scalar GPU kernel arguments must be fixed-width** — `Int32`, not `Int`, which fails with
+  *"Int and UInt do not conform to DevicePassable"*. Widen with `Int(...)` inside the kernel.
+- **A `Pointer[T, MutUntrackedOrigin]` struct field is a silent use-after-free**, because an
+  untracked origin does not extend the owner's lifetime (reported as `modular/skills#11`; hold
+  an `Allocation` instead).
+- **`Array`/`InlineArray` register tiles spill on the Metal backend.** A GPU kernel holding
+  per-thread accumulators in an `Array[Scalar[T], N]` kept them in registers under b2; under
+  1.0.0 they go to memory and the kernel slows ~1.7× with **no warning and no wrong answers**.
+  Use a `SIMD[T, N]` for register tiles. Found in `MOJO_CURRICULUM/03c_matmul_coarse.mojo`;
+  the measurement is in its `RESULTS01.md`.
+- **A `Pointer` from `alloc` carries a tracked origin** that will not convert to `MutAnyOrigin`.
+  Either make helpers generic over `[o: MutOrigin]` (the trait is `MutOrigin` — `MutableOrigin`
+  does not exist), or erase it once with `p.unsafe_origin_cast[MutAnyOrigin]()` and keep the
+  `Allocation` alive yourself.
+- **Backward inference of a SIMD width through a `mut` argument is gone.** A helper
+  `def f[w: Int](mut s: SIMD[T, w], ...)` called with a `Float32` now needs `f[1](...)`.
 
 So the b2 projects are good reference for **ideas and structure**, not copy-paste source. When a
 signature is in doubt, ask the compiler: a deliberate arity error makes it print every overload,
 e.g. `alloc[Scalar[DType.int8]](64, 1, 2, 3)`.
+
+`MOJO_CURRICULUM/UPDATE_TO_100.md` is the worked record of a full b2 → 1.0.0 migration — what
+each file needed, what the table above missed, and the one real performance regression it hit.
 
 ## 📚 Subdirectories
 
@@ -54,6 +73,11 @@ built as tutorial-paced, heavily-commented example programs. It follows one
 operation (matrix multiply) across three tiers — **writing kernels by hand in
 Mojo**, **serving models with MAX**, and **training with PyTorch** — to show who
 writes the kernel and when that should be you. Start with `CURRICULUM.md`.
+
+Migrated to **Mojo 1.0.0 / MAX 26.5.0 on 2026-09-09**, with every program re-run and
+re-measured against the recorded b2 results (`RESULTS01.md`). The migration itself turned
+into a lesson: the register-blocked matmul quietly lost its whole 1.6× win because 1.0.0
+spills `Array` accumulators out of registers on Metal — see `UPDATE_TO_100.md`.
 
 ### `MOJO_HARNESS/`
 A tiny LLM coding agent — a minimal Claude-Code — written **natively in Mojo**,
@@ -122,8 +146,9 @@ toolchain automatically — you don't need to install Mojo separately. From a
 subdirectory, run programs with `uv run mojo run <file>.mojo`. See each README
 for specifics.
 
-`MOJO_TERNARY/` pins Mojo `1.0.0` and needs the `max` package as well (that is where
-`parallelize` lives now), so use `uv sync` then `.venv/bin/mojo` there — see its README.
+`MOJO_TERNARY/` and `MOJO_CURRICULUM/` pin Mojo `1.0.0` and need the `max` package as well
+(that is where `parallelize` and `DeviceContext` live now), so use `uv sync` then
+`.venv/bin/mojo` there — see their READMEs.
 
 Exception: `MOJO_TURBOQUANT_TURBOVEC/` expects an installed Mojo 1.0.0b2 toolchain
 (`mojo build …`), plus a Python venv for the comparison harness and Rust only if

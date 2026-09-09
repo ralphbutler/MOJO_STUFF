@@ -23,6 +23,11 @@ uv run mojo 00_simd_type.mojo      # any file; swap the name
 
 GPU files (`02+`) require an accelerator; on this Mac that's Apple Metal.
 
+**Toolchain: Mojo 1.0.0 / MAX 26.5.0**, pinned exactly in `pyproject.toml`. This
+curriculum was migrated from 1.0.0b2 on 2026-09-09; b2 code does **not** compile on
+1.0.0. The changes that touched these files are listed in `UPDATE_TO_100.md`, and the
+per-file notes below flag the ones that are worth teaching rather than just applying.
+
 ## 🔢 The Programs
 
 ### `00_simd_type.mojo` — the SIMD type alone
@@ -52,12 +57,16 @@ One CPU core walks a million-element array, adding `W` floats per step.
 - **`comptime`** = fixed at compile time. `W` must be `comptime` because it's a
   *type parameter* (`SIMD[dtype, W]`), and those are resolved when the code is
   built.
-- **`alloc[T]` → `UnsafePointer`**: the compiler no longer tracks this memory.
-  No bounds checks, no auto-free — hence the manual `.free()` and the
-  `while i + W <= N` guard. The unsafety is *deliberate and visible*.
-- **Why raw here:** raw pointers with `load`/`store` map straight to the hardware
-  with zero overhead — ideal for a benchmark, and it's the exact model GPU
-  kernels use (see `02`).
+- **Raw memory is two pieces in Mojo 1.0**: `alloc(Layout[T](count=n))` returns an
+  **`Allocation[T]`** that *owns* the memory, and `.unsafe_ptr()` borrows a
+  **`Pointer[T, …]`** to compute through. The owner must outlive the pointer; you
+  release it by consuming the owner — `dealloc(buf^)`, not `ptr.free()`.
+- **The unsafety is spelled out at every use site**: indexing is
+  `p[unsafe_offset=i]` and SIMD access is `p.unsafe_load[width=W](i)` /
+  `p.unsafe_store(i, v)`. No bounds checks, hence the `while i + W <= N` guard. The
+  keyword is the point — you cannot touch raw memory without typing `unsafe`.
+- **Why raw here:** raw pointers map straight to the hardware with zero overhead —
+  ideal for a benchmark, and it's the exact model GPU kernels use (see `02`).
 
 **Run:** `uv run mojo 01_vecadd_unsafe.mojo` → expect `RESULT: PASS`, `mismatches: 0`,
 and a `CPU time` in ms. That time is the baseline `02` compares against.
@@ -66,13 +75,13 @@ and a `CPU time` in ms. That time is the baseline `02` compares against.
 The version you'd actually ship for CPU app code. Same math, safer memory.
 
 - **`List[T]` owns the buffer**: bounds-checked access, freed automatically at end
-  of scope. No `alloc`, no `.free()`.
+  of scope. No `alloc`, no `dealloc`.
 - **`.unsafe_ptr()` is a localized escape hatch**: you still need a raw pointer for
-  SIMD `load`/`store`, but only inside the hot loop, and the `List` still owns and
-  frees the memory. Safe everywhere else.
+  SIMD `unsafe_load`/`unsafe_store`, but only inside the hot loop, and the `List`
+  still owns and frees the memory. Safe everywhere else.
 - **The lesson of the pair (01_unsafe vs 01_safe):** Mojo is *safe by default, unsafe by
   explicit opt-in* (like Rust, unlike C). You never get raw memory by accident —
-  you type `Unsafe`. Idiomatic high-performance code = safe container owns the
+  you type `unsafe_`. Idiomatic high-performance code = safe container owns the
   memory, raw pointer only at the compute core.
 
 **Run:** `uv run mojo 01_vecadd_safe.mojo` → same `RESULT: PASS` and a `CPU time`
@@ -85,7 +94,13 @@ Parallelism moves from "4 lanes per instruction" to "thousands of threads at onc
   each thread its element index; the launch rounds up to whole blocks, so the last
   block overhangs `N` — hence `if tid < size`.
 - **The kernel is a plain function** — no CUDA-style decorators. `DeviceContext`
-  allocates device buffers and launches it via `enqueue_function`.
+  (from `max.gpu.host`) allocates device buffers and launches it via
+  `enqueue_function`.
+- **Scalar kernel arguments must be fixed-width.** `size` is declared `Int32`, not
+  `Int`: the compiler rejects `Int`/`UInt` on the device — *"Int and UInt do not
+  conform to DevicePassable"* — because host and device need not agree on how wide a
+  plain `Int` is. Inside the kernel it's widened with `Int(...)` to compare against
+  the thread index. Every `03*` and `04b` kernel does the same.
 - **`TileTensor` + `layout`** describe the buffer shape; `map_to_host()` moves data
   host↔device for fill and verify.
 - **The point of the experiment:** the GPU is *not* expected to win here. Vector
@@ -119,6 +134,12 @@ per memory access and per barrier). `03a`–`03d` are GPU; `03e` is the CPU coun
   ~512 MACs per barrier (~32× more work per sync than simple tiling). The last big
   lever before you're near hardware peak. Requires `N % BM == 0`, `N % BK == 0` (no
   ragged edges, for speed).
+  **The accumulators must genuinely be registers**, and on Mojo 1.0 that means a
+  `SIMD[dtype, TM*TN]`, not an `Array`/`InlineArray` of scalars — the Metal backend
+  spills the array to memory and the kernel drops to naive speed (6.9 ms vs 4.0 ms,
+  measured 2026-09-09). Worth knowing as a lesson in its own right: "in registers"
+  is a property of the generated code, not of your intent, and the way to check is
+  to time it.
 - **`03d_matmul_check.mojo` — correctness.** The benchmark's all-ones × all-twos fill
   makes every `C = 2N`, which *hides* index bugs. This uses small, non-symmetric
   inputs and checks the GPU result against a CPU triple-loop, element by element —
@@ -126,7 +147,9 @@ per memory access and per barrier). `03a`–`03d` are GPU; `03e` is the CPU coun
 - **`03e_matmul_cpu.mojo` — the CPU counterpart (no GPU needed).** Same `C = A @ B`,
   but for machines with no Mojo GPU backend (e.g. Aurora's Intel Max GPUs). The CPU's
   two levers replace shared memory + registers: **wide SIMD** (`W = simd_width_of[f32]`
-  — 4 on NEON, 16 on AVX-512) and **many cores** (`parallelize` over rows). Runs the
+  — 4 on NEON, 16 on AVX-512) and **many cores** (`parallelize` over rows — note that
+  in Mojo 1.0 `parallelize` lives in `max.algorithm`, not the stdlib, so the `max`
+  package is required even for CPU-only code). Runs the
   same three-stage ladder — naive → SIMD → parallel — reporting GFLOP/s and checking
   each stage against the naive reference. The naive→SIMD jump is the vector width; the
   SIMD→parallel jump is the core count.
@@ -180,11 +203,12 @@ the rectangular and transposed shapes backprop needs (`A@B`, `Aᵀ@B`, `A@Bᵀ`)
 - **~15 kernel launches per epoch:** 2 matmuls forward; 3 matmuls + elementwise +
   column-sum reductions backward; 4 SGD updates.
 - **The `02` lesson, measured.** Both files print `train time` (ms/epoch, warmup
-  excluded). At the tiny default `N=256, H=16` the GPU is ~**30× slower** (0.7 vs 0.024
+  excluded). At the tiny default `N=256, H=16` the GPU is ~**10× slower** (0.27 vs 0.027
   ms/epoch) — ~15 kernel launches per epoch, almost pure overhead. Bump to `N=8192,
-  H=1024` and it flips: GPU ~**15× faster** (7.8 vs 115 ms/epoch on the M4 Max), identical
+  H=1024` and it flips: GPU ~**15× faster** (7.5 vs 117 ms/epoch on the M4 Max), identical
   loss on both. That crossover is the whole arithmetic-intensity / parallelism story in one
-  experiment. Structural takeaway: training — forward *and* backward — is just matmuls, and
+  experiment. (Numbers re-measured on Mojo 1.0.0, 2026-09-09. The small-size gap narrowed
+  from ~30× under 1.0.0b2 — launch overhead fell — while the large-size win is unchanged.) Structural takeaway: training — forward *and* backward — is just matmuls, and
   `03`'s kernel runs all of it.
 
 **Run:** `uv run mojo 04b_train_mlp_gpu.mojo` → same loss trajectory as `04` and the NumPy
@@ -192,13 +216,15 @@ reference.
 
 ### `05_custom_max_op.py` (+ `custom_op_kernels/relu.mojo`) — the capstone: your Mojo op inside MAX
 Where the whole journey converges. The `relu` you hand-wrote in `04`/`04b` is registered as
-a **custom MAX operation** (`@compiler.register("relu")` in `custom_op_kernels/relu.mojo`)
+a **custom MAX operation** (`@register("relu")` in `custom_op_kernels/relu.mojo`)
 and run as a node in a MAX graph. This is the concrete answer to *why Mojo is a language,
 not just a demo*: when a shipped op doesn't fit, you write the kernel in Mojo and MAX
 compiles and runs it — here on the Metal GPU.
 
-- **Two halves.** `custom_op_kernels/relu.mojo` is the Mojo side — one `@compiler.register`
-  struct whose `execute` method applies an elementwise rule (`max(x, 0)`) via `foreach`.
+- **Two halves.** `custom_op_kernels/relu.mojo` is the Mojo side — one `@register`
+  struct (from `extensibility`; in 1.0.0b2 this was `@compiler.register`, and that
+  top-level `compiler` module no longer exists) whose `execute` method applies an
+  elementwise rule (`max(x, 0)`) via `foreach`.
   `05_custom_max_op.py` is the driver — it builds a one-op graph with
   `ops.custom(name="relu", …)`, points MAX at the kernel dir with `custom_extensions=[…]`,
   compiles via `InferenceSession`, and executes.

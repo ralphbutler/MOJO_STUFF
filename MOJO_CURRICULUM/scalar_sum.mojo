@@ -16,7 +16,8 @@
 # W = simd_width_of[f32] adapts to the machine (Mac NEON 4, AVX-512 16).
 
 from std.sys import simd_width_of, num_physical_cores
-from std.algorithm import vectorize, parallelize
+from std.algorithm import vectorize
+from max.algorithm import parallelize
 from std.math import align_down, min
 from std.collections import List
 from std.time import perf_counter_ns
@@ -41,27 +42,27 @@ def scalar_sum_2(data: List[Float32]) -> Float32:
     var vec_end = align_down(n, W)
     var i = 0
     while i < vec_end:
-        acc += p.load[width=W](i)
+        acc += p.unsafe_load[width=W](i)
         i += W
     var total = acc.reduce_add()
     while i < n:                              # scalar tail (< W leftover elements)
-        total += p[i]
+        total += p[unsafe_offset=i]
         i += 1
     return total
 
 
 # --- 3: algorithm.vectorize owns the loop + remainder. Runtime-arg closure ---
-# takes an explicit capture list {mut acc, read p}; comptime-if keeps the hot
+# takes an explicit capture list {mut acc, imm p}; comptime-if keeps the hot
 # path a pure vector add (no per-chunk reduction).
 def scalar_sum_3(data: List[Float32]) -> Float32:
     var p = data.unsafe_ptr()
     var acc = SIMD[dtype, W](0)
 
-    def accumulate[w: Int](i: Int) {mut acc, read p}:
+    def accumulate[w: Int](i: Int) {mut acc, imm p}:
         comptime if w == W:
-            acc += p.load[width=W](i)
+            acc += p.unsafe_load[width=W](i)
         else:
-            acc[0] += p.load[width=w](i).reduce_add()
+            acc[0] += p.unsafe_load[width=w](i).reduce_add()
 
     vectorize[W](len(data), accumulate)
     return acc.reduce_add()
@@ -84,24 +85,27 @@ def scalar_sum_4(data: List[Float32]) -> Float32:
         var count = end - start
         var acc = SIMD[dtype, W](0)
 
-        def accumulate[w: Int](j: Int) {mut acc, read p, read start}:
+        def accumulate[w: Int](j: Int) {mut acc, imm p, imm start}:
             comptime if w == W:
-                acc += p.load[width=W](start + j)
+                acc += p.unsafe_load[width=W](start + j)
             else:
-                acc[0] += p.load[width=w](start + j).reduce_add()
+                acc[0] += p.unsafe_load[width=w](start + j).reduce_add()
 
         vectorize[W](count, accumulate)
-        pp[wk] = acc.reduce_add()
+        pp[unsafe_offset=wk] = acc.reduce_add()
 
     parallelize[work](num_workers, num_workers)
     var total: Float32 = 0
     for k in range(num_workers):
-        total += pp[k]
+        total += pp[unsafe_offset=k]
     return total
 
 
 # --- shared Kahan step: carry the lost low-order bits in `c`, feed them back. ---
 # Float32 == SIMD[f32, 1], so this one helper serves both vector and scalar sites.
+# Mojo 1.0 note: at the scalar sites the width has to be written out —
+# `kahan_add[1](s, c, x)` — because `w` can no longer be inferred backwards from a
+# `Float32` mut argument. The vector sites still infer w = W from the accumulator.
 @always_inline
 def kahan_add[w: Int](mut s: SIMD[dtype, w], mut c: SIMD[dtype, w], x: SIMD[dtype, w]):
     var y = x - c
@@ -116,14 +120,14 @@ def scalar_sum_5(data: List[Float32]) -> Float32:
     var total = SIMD[dtype, W](0)
     var comp = SIMD[dtype, W](0)
 
-    def accumulate[w: Int](i: Int) {mut total, mut comp, read p}:
+    def accumulate[w: Int](i: Int) {mut total, mut comp, imm p}:
         comptime if w == W:
-            kahan_add(total, comp, p.load[width=W](i))
+            kahan_add(total, comp, p.unsafe_load[width=W](i))
         else:
             var s = total[0]
             var c = comp[0]
             for k in range(w):
-                kahan_add(s, c, p[i + k])
+                kahan_add[1](s, c, p[unsafe_offset=i + k])
             total[0] = s
             comp[0] = c
 
@@ -148,14 +152,14 @@ def scalar_sum_6(data: List[Float32]) -> Float32:
         var total = SIMD[dtype, W](0)
         var comp = SIMD[dtype, W](0)
 
-        def accumulate[w: Int](j: Int) {mut total, mut comp, read p, read start}:
+        def accumulate[w: Int](j: Int) {mut total, mut comp, imm p, imm start}:
             comptime if w == W:
-                kahan_add(total, comp, p.load[width=W](start + j))
+                kahan_add(total, comp, p.unsafe_load[width=W](start + j))
             else:
                 var s = total[0]
                 var c = comp[0]
                 for k in range(w):
-                    kahan_add(s, c, p[start + j + k])
+                    kahan_add[1](s, c, p[unsafe_offset=start + j + k])
                 total[0] = s
                 comp[0] = c
 
@@ -163,14 +167,14 @@ def scalar_sum_6(data: List[Float32]) -> Float32:
         var s: Float32 = 0                    # (2) Kahan-combine this worker's lanes
         var c: Float32 = 0
         for lane in range(W):
-            kahan_add(s, c, total[lane])
-        pp[wk] = s
+            kahan_add[1](s, c, total[lane])
+        pp[unsafe_offset=wk] = s
 
     parallelize[work](num_workers, num_workers)
     var s: Float32 = 0                        # (3) Kahan-combine the per-worker partials
     var c: Float32 = 0
     for k in range(num_workers):
-        kahan_add(s, c, pp[k])
+        kahan_add[1](s, c, pp[unsafe_offset=k])
     return s
 
 
@@ -194,7 +198,7 @@ def make_data(n: Int) -> List[Float32]:
     var d = List[Float32](length=n, fill=0)
     var p = d.unsafe_ptr()
     for i in range(n):
-        p[i] = Float32((i % 97) + 1) * 0.5
+        p[unsafe_offset=i] = Float32((i % 97) + 1) * 0.5
     return d^
 
 

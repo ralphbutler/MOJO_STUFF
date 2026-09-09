@@ -14,7 +14,7 @@
 # reduction use private partials (see scalar_sum.mojo). See the .md for details.
 
 from std.atomic import Atomic
-from std.algorithm import parallelize
+from max.algorithm import parallelize
 from std.sys import num_physical_cores
 from std.collections import List
 
@@ -60,19 +60,19 @@ def main() raises:
     var counter = List[Int64](length=1, fill=0)
     var cptr = counter.unsafe_ptr()
     var lock = SpinLock()
-    var lptr = UnsafePointer(to=lock)
+    var lptr = Pointer(to=lock)
 
     @parameter
     def work(w: Int):
         for _ in range(iters):
             with LockGuard(lptr[]):           # acquire; auto-release at block end
-                cptr[0] = cptr[0] + 1         # non-atomic read-modify-write, protected
+                cptr[unsafe_offset=0] = cptr[unsafe_offset=0] + 1         # non-atomic read-modify-write, protected
 
     parallelize[work](workers, workers)
 
     var expected = Int64(workers) * Int64(iters)
     print("spinlock_atomic — mutual exclusion via CAS")
     print("  workers  :", workers)
-    print("  counter  :", cptr[0])
+    print("  counter  :", cptr[unsafe_offset=0])
     print("  expected :", expected)
-    print("  RESULT   :", "PASS" if cptr[0] == expected else "FAIL (lost updates)")
+    print("  RESULT   :", "PASS" if cptr[unsafe_offset=0] == expected else "FAIL (lost updates)")

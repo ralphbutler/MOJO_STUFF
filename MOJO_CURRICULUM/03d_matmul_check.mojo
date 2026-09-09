@@ -10,10 +10,8 @@
 
 from std.sys import has_accelerator
 from std.gpu import thread_idx, block_idx
-from std.gpu.sync import barrier
-from std.gpu.memory import AddressSpace
-from std.gpu.host import DeviceContext
-from std.collections import InlineArray
+from max.gpu import barrier
+from max.gpu.host import DeviceContext
 from layout import TileTensor, row_major, stack_allocation
 
 comptime dtype = DType.float32
@@ -65,9 +63,9 @@ def matmul_coarse(
     var sb = stack_allocation[dtype, address_space = AddressSpace.SHARED](bs_layout)
     comptime assert sa.flat_rank == 2 and sb.flat_rank == 2
 
-    var acc = InlineArray[Scalar[dtype], TM * TN](fill=0)
-    var reg_m = InlineArray[Scalar[dtype], TM](fill=0)
-    var reg_n = InlineArray[Scalar[dtype], TN](fill=0)
+    var acc = SIMD[dtype, TM * TN](0)
+    var reg_m = SIMD[dtype, TM](0)
+    var reg_n = SIMD[dtype, TN](0)
 
     for k0 in range(0, N, BK):
         comptime for off in range(0, BM, STRIDE_A):

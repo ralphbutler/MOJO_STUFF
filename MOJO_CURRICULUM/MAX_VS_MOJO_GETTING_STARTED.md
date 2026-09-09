@@ -37,6 +37,10 @@ not the curriculum.
 > wrong for **MAX inference**. `uv pip install "max[serve]"` from **plain PyPI**
 > (max 26.4.0) installs on macOS arm64, and `max generate` ran Qwen2.5-0.5B on the
 > **Apple Silicon GPU** (`devices: gpu[0]`, Metal) at ~14.9 tok/s / 323ms TTFT.
+> **Re-verified 2026-09-09 on max 26.5.0 / Mojo 1.0.0** — the pin this project now
+> carries: `max generate` and `max serve` + litellm both still run on Metal
+> (22.9 tok/s / 1.0s TTFT for the same model), and so does the full Mojo GPU ladder
+> (`02`–`04b`) and the custom-op capstone (`05`).
 > No pixi, no Modular index, no NVIDIA required. So a Mac is a *fine* box for the
 > Day-1 "run a model on MAX" hook. Two caveats remain: (a) **Mojo GPU-kernel
 > programming** (matmul/tiling) is the part that's still NVIDIA/AMD-centric — the

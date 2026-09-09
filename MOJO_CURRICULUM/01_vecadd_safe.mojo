@@ -30,7 +30,7 @@ def main() raises:
         c.append(0)
 
     # --- the SIMD core (timed, repeated ITERS times) ---
-    # unsafe_ptr() hands us an UnsafePointer into the List's storage so we can use
+    # unsafe_ptr() hands us a Pointer into the List's storage so we can use
     # SIMD load/store. This is the deliberate, localized escape hatch: the pointers
     # live only inside this block, and the Lists still own (and will free) the memory.
     var pa = a.unsafe_ptr()
@@ -41,9 +41,9 @@ def main() raises:
     for _ in range(ITERS):
         var i = 0
         while i + W <= N:
-            var va = pa.load[width=W](i)
-            var vb = pb.load[width=W](i)
-            pc.store(i, va + vb)
+            var va = pa.unsafe_load[width=W](i)
+            var vb = pb.unsafe_load[width=W](i)
+            pc.unsafe_store(i, va + vb)
             i += W
         while i < N:              # scalar tail for the leftover < W elements
             c[i] = a[i] + b[i]    # bounds-checked List access

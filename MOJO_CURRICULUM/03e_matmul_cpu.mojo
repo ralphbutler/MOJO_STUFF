@@ -17,13 +17,19 @@
 
 from std.sys import simd_width_of, num_physical_cores
 from std.time import perf_counter_ns
-from std.algorithm import parallelize
+from std.memory import alloc, dealloc, Layout
+from max.algorithm import parallelize
 
 comptime dtype = DType.float32
 comptime N = 1024                     # square; a multiple of W keeps the SIMD tail empty
 comptime W = simd_width_of[dtype]()   # floats per SIMD register (Mac NEON 4, Aurora AVX-512 16)
 
-comptime Ptr = UnsafePointer[Scalar[dtype], MutUntrackedOrigin]
+# One pointer type for all the buffers. In Mojo 1.0 a raw pointer carries an
+# ORIGIN — the compiler's record of which value owns the memory it points into.
+# `alloc` hands back a tracked origin; these helpers take pointers from five
+# different Allocations, so we erase the origin once with `unsafe_origin_cast`
+# and keep the Allocations alive in main() until the explicit dealloc.
+comptime Ptr = Pointer[Scalar[dtype], MutAnyOrigin]
 
 
 # Deterministic, asymmetric fills — any row/col mix-up produces wrong numbers.
@@ -37,7 +43,7 @@ def b_val(i: Int, j: Int) -> Scalar[dtype]:
 
 def zero(c: Ptr):
     for idx in range(N * N):
-        c[idx] = 0
+        c[unsafe_offset=idx] = 0
 
 
 # --- stage 1: naive i,j,k. One dot product per output, accumulated in a scalar. ---
@@ -46,8 +52,8 @@ def matmul_naive(a: Ptr, b: Ptr, c: Ptr):
         for j in range(N):
             var acc: Scalar[dtype] = 0
             for k in range(N):
-                acc += a[i * N + k] * b[k * N + j]
-            c[i * N + j] = acc
+                acc += a[unsafe_offset=i * N + k] * b[unsafe_offset=k * N + j]
+            c[unsafe_offset=i * N + j] = acc
 
 
 # --- stage 2: i,k,j. Broadcast one A element, stream a B row and a C row as SIMD. ---
@@ -58,21 +64,21 @@ def matmul_simd(a: Ptr, b: Ptr, c: Ptr):
     for i in range(N):
         var row_c = i * N
         for k in range(N):
-            var aik = SIMD[dtype, W](a[i * N + k])   # splat scalar across all W lanes
+            var aik = SIMD[dtype, W](a[unsafe_offset=i * N + k])   # splat scalar across all W lanes
             var row_b = k * N
             var j = 0
             while j + W <= N:
-                var cv = c.load[width=W](row_c + j)
-                var bv = b.load[width=W](row_b + j)
-                c.store(row_c + j, cv + aik * bv)     # fused multiply-add, W lanes at once
+                var cv = c.unsafe_load[width=W](row_c + j)
+                var bv = b.unsafe_load[width=W](row_b + j)
+                c.unsafe_store(row_c + j, cv + aik * bv)     # fused multiply-add, W lanes at once
                 j += W
             while j < N:                              # scalar tail (none when N % W == 0)
-                c[row_c + j] += a[i * N + k] * b[row_b + j]
+                c[unsafe_offset=row_c + j] += a[unsafe_offset=i * N + k] * b[unsafe_offset=row_b + j]
                 j += 1
 
 
 # --- stage 3: same math, but each ROW of C is an independent work item across cores. ---
-# Row i writes only c[i*N : i*N+N] and reads a[i, :] + all of B, so the rows never
+# Row i writes only c[unsafe_offset=i*N : i*N+N] and reads a[unsafe_offset=i, :] + all of B, so the rows never
 # collide — no locks needed. parallelize() hands the N rows to `workers` threads.
 def matmul_parallel(a: Ptr, b: Ptr, c: Ptr, workers: Int):
     zero(c)
@@ -81,16 +87,16 @@ def matmul_parallel(a: Ptr, b: Ptr, c: Ptr, workers: Int):
     def row_worker(i: Int):
         var row_c = i * N
         for k in range(N):
-            var aik = SIMD[dtype, W](a[i * N + k])
+            var aik = SIMD[dtype, W](a[unsafe_offset=i * N + k])
             var row_b = k * N
             var j = 0
             while j + W <= N:
-                var cv = c.load[width=W](row_c + j)
-                var bv = b.load[width=W](row_b + j)
-                c.store(row_c + j, cv + aik * bv)
+                var cv = c.unsafe_load[width=W](row_c + j)
+                var bv = b.unsafe_load[width=W](row_b + j)
+                c.unsafe_store(row_c + j, cv + aik * bv)
                 j += W
             while j < N:
-                c[row_c + j] += a[i * N + k] * b[row_b + j]
+                c[unsafe_offset=row_c + j] += a[unsafe_offset=i * N + k] * b[unsafe_offset=row_b + j]
                 j += 1
 
     parallelize[row_worker](N, workers)
@@ -115,8 +121,8 @@ def timed(name: String, a: Ptr, b: Ptr, c: Ptr, kind: Int, workers: Int) -> None
 def diff(reference: Ptr, got: Ptr) -> Int:
     var mismatches = 0
     for idx in range(N * N):
-        var ae = abs(Float64(got[idx]) - Float64(reference[idx]))
-        var re = ae / (abs(Float64(reference[idx])) + 1.0e-12)
+        var ae = abs(Float64(got[unsafe_offset=idx]) - Float64(reference[unsafe_offset=idx]))
+        var re = ae / (abs(Float64(reference[unsafe_offset=idx])) + 1.0e-12)
         if re > 1.0e-4 and ae > 1.0e-4:
             mismatches += 1
     return mismatches
@@ -130,16 +136,24 @@ def main() raises:
     print("  workers      :", workers, "physical cores")
     print("  GFLOP/pass   :", (2.0 * Float64(N) * Float64(N) * Float64(N)) / 1.0e9)
 
-    var a = alloc[Scalar[dtype]](N * N)
-    var b = alloc[Scalar[dtype]](N * N)
-    var c_naive = alloc[Scalar[dtype]](N * N)
-    var c_simd = alloc[Scalar[dtype]](N * N)
-    var c_par = alloc[Scalar[dtype]](N * N)
+    # alloc(Layout[T](count=n)) returns an Allocation[T] that OWNS the memory;
+    # .unsafe_ptr() borrows a pointer into it. The Allocation must outlive the
+    # pointer, which it does — nothing frees until the dealloc calls below.
+    var a_buf = alloc(Layout[Scalar[dtype]](count=N * N))
+    var b_buf = alloc(Layout[Scalar[dtype]](count=N * N))
+    var cn_buf = alloc(Layout[Scalar[dtype]](count=N * N))
+    var cs_buf = alloc(Layout[Scalar[dtype]](count=N * N))
+    var cp_buf = alloc(Layout[Scalar[dtype]](count=N * N))
+    var a = a_buf.unsafe_ptr().unsafe_origin_cast[MutAnyOrigin]()
+    var b = b_buf.unsafe_ptr().unsafe_origin_cast[MutAnyOrigin]()
+    var c_naive = cn_buf.unsafe_ptr().unsafe_origin_cast[MutAnyOrigin]()
+    var c_simd = cs_buf.unsafe_ptr().unsafe_origin_cast[MutAnyOrigin]()
+    var c_par = cp_buf.unsafe_ptr().unsafe_origin_cast[MutAnyOrigin]()
 
     for i in range(N):
         for j in range(N):
-            a[i * N + j] = a_val(i, j)
-            b[i * N + j] = b_val(i, j)
+            a[unsafe_offset=i * N + j] = a_val(i, j)
+            b[unsafe_offset=i * N + j] = b_val(i, j)
 
     print("--- timings ---")
     timed("naive   ", a, b, c_naive, 0, workers)
@@ -153,8 +167,8 @@ def main() raises:
     print("  parallel mismatches:", bad_par, "/", N * N)
     print("  RESULT             :", "PASS" if (bad_simd == 0 and bad_par == 0) else "FAIL")
 
-    a.free()
-    b.free()
-    c_naive.free()
-    c_simd.free()
-    c_par.free()
+    dealloc(a_buf^)
+    dealloc(b_buf^)
+    dealloc(cn_buf^)
+    dealloc(cs_buf^)
+    dealloc(cp_buf^)

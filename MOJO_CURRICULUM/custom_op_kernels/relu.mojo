@@ -7,17 +7,18 @@
 # it as a graph node — CPU or GPU, chosen by `target`. The Python driver (05_custom_max_op.py)
 # builds a one-op graph around this and executes it.
 
-import compiler
-
-from std.gpu.host import DeviceContext
+from max.gpu.host import DeviceContext
 from std.math import max
 
-from extensibility import InputTensor, OutputTensor, foreach
+from extensibility import InputTensor, OutputTensor, foreach, register
 
 from std.utils.coord import Coord
 
 
-@compiler.register("relu")
+# Mojo 1.0 note: the registration decorator used to live in a top-level `compiler`
+# module (`@compiler.register`). That module is gone; `register` now comes from
+# `extensibility`, alongside InputTensor / OutputTensor / foreach.
+@register("relu")
 struct Relu:
     @staticmethod
     def execute[

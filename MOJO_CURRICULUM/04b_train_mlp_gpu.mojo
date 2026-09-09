@@ -11,11 +11,16 @@
 # dimensions; bump N and H (comptime, below) and the GPU work starts to dominate the launch
 # overhead. The point here is that training — forward AND backward — is "just" matmuls, and
 # the 03 kernel is enough to run all of it on the accelerator.
+#
+# Mojo 1.0 note: every scalar kernel argument here (M, K, P, n) is declared `Int32`,
+# not `Int`. The compiler rejects `Int`/`UInt` on the device — "Int and UInt do not
+# conform to DevicePassable" — so the shapes are passed as fixed-width values and
+# widened with `Int(...)` where they are compared against thread indices.
 
 from std.math import ceildiv, sqrt
 from std.sys import has_accelerator
 from std.gpu import global_idx
-from std.gpu.host import DeviceContext
+from max.gpu.host import DeviceContext
 from std.time import perf_counter_ns
 from layout import TileTensor, TensorLayout, row_major
 
@@ -47,42 +52,42 @@ comptime L_1f = row_major[1]()
 # C[M,P] = A[M,K] @ B[K,P]
 def matmul_kernel[AL: TensorLayout, BL: TensorLayout, CL: TensorLayout](
     A: TileTensor[dtype, AL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin],
-    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int, K: Int, P: Int,
+    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int32, K: Int32, P: Int32,
 ):
     comptime assert A.flat_rank == 2 and B.flat_rank == 2 and C.flat_rank == 2
     var row = global_idx.y
     var col = global_idx.x
-    if row < M and col < P:
+    if row < Int(M) and col < Int(P):
         var acc = Scalar[dtype](0)
-        for k in range(K):
+        for k in range(Int(K)):
             acc += rebind[Scalar[dtype]](A[row, k]) * rebind[Scalar[dtype]](B[k, col])
         C[row, col] = rebind[C.ElementType](acc)
 
 # C[K,P] = A[M,K]^T @ B[M,P]   (contract over leading dim M)
 def matmul_at_b_kernel[AL: TensorLayout, BL: TensorLayout, CL: TensorLayout](
     A: TileTensor[dtype, AL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin],
-    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int, K: Int, P: Int,
+    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int32, K: Int32, P: Int32,
 ):
     comptime assert A.flat_rank == 2 and B.flat_rank == 2 and C.flat_rank == 2
     var row = global_idx.y   # 0..K
     var col = global_idx.x   # 0..P
-    if row < K and col < P:
+    if row < Int(K) and col < Int(P):
         var acc = Scalar[dtype](0)
-        for m in range(M):
+        for m in range(Int(M)):
             acc += rebind[Scalar[dtype]](A[m, row]) * rebind[Scalar[dtype]](B[m, col])
         C[row, col] = rebind[C.ElementType](acc)
 
 # C[M,P] = A[M,K] @ B[P,K]^T
 def matmul_a_bt_kernel[AL: TensorLayout, BL: TensorLayout, CL: TensorLayout](
     A: TileTensor[dtype, AL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin],
-    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int, K: Int, P: Int,
+    C: TileTensor[dtype, CL, MutAnyOrigin], M: Int32, K: Int32, P: Int32,
 ):
     comptime assert A.flat_rank == 2 and B.flat_rank == 2 and C.flat_rank == 2
     var row = global_idx.y   # 0..M
     var col = global_idx.x   # 0..P
-    if row < M and col < P:
+    if row < Int(M) and col < Int(P):
         var acc = Scalar[dtype](0)
-        for k in range(K):
+        for k in range(Int(K)):
             acc += rebind[Scalar[dtype]](A[row, k]) * rebind[Scalar[dtype]](B[col, k])
         C[row, col] = rebind[C.ElementType](acc)
 
@@ -92,70 +97,70 @@ def matmul_a_bt_kernel[AL: TensorLayout, BL: TensorLayout, CL: TensorLayout](
 # Z[r,c] += B[0,c]; A[r,c] = relu(Z[r,c])   (forward bias-add + activation)
 def bias_relu_kernel[ZL: TensorLayout, BL: TensorLayout, AL: TensorLayout](
     Z: TileTensor[dtype, ZL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin],
-    A: TileTensor[dtype, AL, MutAnyOrigin], M: Int, P: Int,
+    A: TileTensor[dtype, AL, MutAnyOrigin], M: Int32, P: Int32,
 ):
     comptime assert Z.flat_rank == 2 and B.flat_rank == 2 and A.flat_rank == 2
     var row = global_idx.y
     var col = global_idx.x
-    if row < M and col < P:
+    if row < Int(M) and col < Int(P):
         var v = rebind[Scalar[dtype]](Z[row, col]) + rebind[Scalar[dtype]](B[0, col])
         Z[row, col] = rebind[Z.ElementType](v)
         A[row, col] = rebind[A.ElementType](v if v > 0 else Scalar[dtype](0))
 
 # Z[r,0] += B[0,0]   (add the single output bias)
 def add_bias1_kernel[ZL: TensorLayout, BL: TensorLayout](
-    Z: TileTensor[dtype, ZL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin], M: Int,
+    Z: TileTensor[dtype, ZL, MutAnyOrigin], B: TileTensor[dtype, BL, MutAnyOrigin], M: Int32,
 ):
     comptime assert Z.flat_rank == 2 and B.flat_rank == 2
     var r = global_idx.x
-    if r < M:
+    if r < Int(M):
         var v = rebind[Scalar[dtype]](Z[r, 0]) + rebind[Scalar[dtype]](B[0, 0])
         Z[r, 0] = rebind[Z.ElementType](v)
 
 # Dz[r,0] = scale * (Z[r,0] - Y[r,0])   (gradient of MSE wrt the output pre-activation)
 def dz2_kernel[ZL: TensorLayout, YL: TensorLayout, DL: TensorLayout](
     Z: TileTensor[dtype, ZL, MutAnyOrigin], Y: TileTensor[dtype, YL, MutAnyOrigin],
-    Dz: TileTensor[dtype, DL, MutAnyOrigin], M: Int, scale: Scalar[dtype],
+    Dz: TileTensor[dtype, DL, MutAnyOrigin], M: Int32, scale: Scalar[dtype],
 ):
     comptime assert Z.flat_rank == 2 and Y.flat_rank == 2 and Dz.flat_rank == 2
     var r = global_idx.x
-    if r < M:
+    if r < Int(M):
         var v = scale * (rebind[Scalar[dtype]](Z[r, 0]) - rebind[Scalar[dtype]](Y[r, 0]))
         Dz[r, 0] = rebind[Dz.ElementType](v)
 
 # Dz[r,c] = Da[r,c] if Z[r,c] > 0 else 0   (relu gradient, using the saved pre-activation Z)
 def relu_grad_kernel[ZL: TensorLayout, AL: TensorLayout, DL: TensorLayout](
     Z: TileTensor[dtype, ZL, MutAnyOrigin], Da: TileTensor[dtype, AL, MutAnyOrigin],
-    Dz: TileTensor[dtype, DL, MutAnyOrigin], M: Int, P: Int,
+    Dz: TileTensor[dtype, DL, MutAnyOrigin], M: Int32, P: Int32,
 ):
     comptime assert Z.flat_rank == 2 and Da.flat_rank == 2 and Dz.flat_rank == 2
     var row = global_idx.y
     var col = global_idx.x
-    if row < M and col < P:
+    if row < Int(M) and col < Int(P):
         var g = rebind[Scalar[dtype]](Da[row, col]) if rebind[Scalar[dtype]](Z[row, col]) > 0 else Scalar[dtype](0)
         Dz[row, col] = rebind[Dz.ElementType](g)
 
 # Out[0,j] = sum_i In[i,j]   (column sum -> bias gradient; one thread per column)
 def colsum_kernel[IL: TensorLayout, OL: TensorLayout](
     In: TileTensor[dtype, IL, MutAnyOrigin], Out: TileTensor[dtype, OL, MutAnyOrigin],
-    M: Int, P: Int,
+    M: Int32, P: Int32,
 ):
     comptime assert In.flat_rank == 2 and Out.flat_rank == 2
     var j = global_idx.x
-    if j < P:
+    if j < Int(P):
         var s = Scalar[dtype](0)
-        for i in range(M):
+        for i in range(Int(M)):
             s += rebind[Scalar[dtype]](In[i, j])
         Out[0, j] = rebind[Out.ElementType](s)
 
 # p[k] -= lr * g[k]   (SGD update over a flat 1D view of a parameter buffer)
 def sgd_kernel[L: TensorLayout](
     p: TileTensor[dtype, L, MutAnyOrigin], g: TileTensor[dtype, L, MutAnyOrigin],
-    n: Int, lr: Scalar[dtype],
+    n: Int32, lr: Scalar[dtype],
 ):
     comptime assert p.flat_rank == 1 and g.flat_rank == 1
     var k = global_idx.x
-    if k < n:
+    if k < Int(n):
         p[k] = rebind[p.ElementType](rebind[Scalar[dtype]](p[k]) - lr * rebind[Scalar[dtype]](g[k]))
 
 
@@ -264,23 +269,23 @@ def main() raises:
             ctx.synchronize()
             t0 = perf_counter_ns()
         # forward
-        ctx.enqueue_function[K_fwd1](X, W1, z1, N, D, H, grid_dim=g2_NH, block_dim=blk2)
-        ctx.enqueue_function[K_biasrelu](z1, b1, a1, N, H, grid_dim=g2_NH, block_dim=blk2)
-        ctx.enqueue_function[K_fwd2](a1, W2, z2, N, H, 1, grid_dim=g2_N1, block_dim=blk2)
-        ctx.enqueue_function[K_addb2](z2, b2, N, grid_dim=ceildiv(N, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_fwd1](X, W1, z1, Int32(N), Int32(D), Int32(H), grid_dim=g2_NH, block_dim=blk2)
+        ctx.enqueue_function[K_biasrelu](z1, b1, a1, Int32(N), Int32(H), grid_dim=g2_NH, block_dim=blk2)
+        ctx.enqueue_function[K_fwd2](a1, W2, z2, Int32(N), Int32(H), Int32(1), grid_dim=g2_N1, block_dim=blk2)
+        ctx.enqueue_function[K_addb2](z2, b2, Int32(N), grid_dim=ceildiv(N, BLK1), block_dim=BLK1)
         # backward
-        ctx.enqueue_function[K_dz2](z2, Y, dz2, N, two_over_N, grid_dim=ceildiv(N, BLK1), block_dim=BLK1)
-        ctx.enqueue_function[K_dW2](a1, dz2, dW2, N, H, 1, grid_dim=g2_H1, block_dim=blk2)
-        ctx.enqueue_function[K_db2](dz2, db2, N, 1, grid_dim=ceildiv(1, BLK1), block_dim=BLK1)
-        ctx.enqueue_function[K_da1](dz2, W2, da1, N, 1, H, grid_dim=g2_NH, block_dim=blk2)
-        ctx.enqueue_function[K_relugrad](z1, da1, dz1, N, H, grid_dim=g2_NH, block_dim=blk2)
-        ctx.enqueue_function[K_dW1](X, dz1, dW1, N, D, H, grid_dim=g2_DH, block_dim=blk2)
-        ctx.enqueue_function[K_db1](dz1, db1, N, H, grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_dz2](z2, Y, dz2, Int32(N), two_over_N, grid_dim=ceildiv(N, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_dW2](a1, dz2, dW2, Int32(N), Int32(H), Int32(1), grid_dim=g2_H1, block_dim=blk2)
+        ctx.enqueue_function[K_db2](dz2, db2, Int32(N), Int32(1), grid_dim=ceildiv(1, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_da1](dz2, W2, da1, Int32(N), Int32(1), Int32(H), grid_dim=g2_NH, block_dim=blk2)
+        ctx.enqueue_function[K_relugrad](z1, da1, dz1, Int32(N), Int32(H), grid_dim=g2_NH, block_dim=blk2)
+        ctx.enqueue_function[K_dW1](X, dz1, dW1, Int32(N), Int32(D), Int32(H), grid_dim=g2_DH, block_dim=blk2)
+        ctx.enqueue_function[K_db1](dz1, db1, Int32(N), Int32(H), grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
         # SGD
-        ctx.enqueue_function[K_sgdW1](W1f, dW1f, D * H, LR, grid_dim=ceildiv(D * H, BLK1), block_dim=BLK1)
-        ctx.enqueue_function[K_sgdb1](b1f, db1f, H, LR, grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
-        ctx.enqueue_function[K_sgdW2](W2f, dW2f, H, LR, grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
-        ctx.enqueue_function[K_sgdb2](b2f, db2f, 1, LR, grid_dim=1, block_dim=BLK1)
+        ctx.enqueue_function[K_sgdW1](W1f, dW1f, Int32(D * H), LR, grid_dim=ceildiv(D * H, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_sgdb1](b1f, db1f, Int32(H), LR, grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_sgdW2](W2f, dW2f, Int32(H), LR, grid_dim=ceildiv(H, BLK1), block_dim=BLK1)
+        ctx.enqueue_function[K_sgdb2](b2f, db2f, Int32(1), LR, grid_dim=1, block_dim=BLK1)
 
         if epoch % 50 == 0 or epoch == 1:
             ctx.synchronize()

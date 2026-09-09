@@ -145,6 +145,54 @@ all-ones × all-twos benchmark fill could not have caught an indexing bug; this 
 5. **Close on MPS (optional, advanced):** vectorized `float4` loads, SIMD-group matrix
    instructions, double-buffered K-slabs. Diminishing returns for learning; high effort.
 
+## 🔁 Re-measured on Mojo 1.0.0 / MAX 26.5.0 (2026-09-09)
+
+The whole curriculum was migrated from Mojo 1.0.0b2 to 1.0.0 on 2026-09-09
+(see `UPDATE_TO_100.md`). Same machine, same `N = 2048`, 50 timed iters. The b2 numbers
+above are kept; these are the new ones beside them.
+
+| Implementation | b2 time | **1.0.0 time** | b2 GFLOP/s | **1.0.0 GFLOP/s** |
+|---|---|---|---|---|
+| PyTorch MPS (Apple GPU, tuned) | 1.284 ms | 1.322 ms | 13,381 | 12,995 |
+| Mojo coarse (register-blocked, 128×128 / 8×8) | 3.968 ms | **3.99 ms** | 4,330 | **4,303** |
+| PyTorch CPU (Accelerate BLAS) | 5.412 ms | 5.115 ms | 3,174 | 3,359 |
+| Mojo naive | 6.379 ms | 6.43 ms | 2,693 | 2,670 |
+| Mojo simple-tiled (16×16) | 8.010 ms | 7.85 ms | 2,145 | 2,188 |
+
+**Every row is within run-to-run noise of its b2 value, and the leaderboard order is
+unchanged.** `03d_matmul_check.mojo` still reports 0/65536 mismatches, max error 0.0.
+
+### ⚠️ But the coarse kernel only survived after a fix
+
+The first 1.0.0 run of `03c` came in at **6.9 ms / 2,490 GFLOP/s** — a 1.7× regression
+that erased the entire register-blocking win and put the coarse kernel level with naive.
+PyTorch's numbers were unchanged on the same machine, so it was not thermal drift or a
+machine change.
+
+The cause: the per-thread accumulators. `03c`/`03d` held them in
+`InlineArray[Scalar[dtype], TM*TN]`, which under 1.0.0b2 stayed in registers. On 1.0.0
+the Metal backend **spills that array to memory** — and a register-blocked kernel whose
+registers are in memory is just a naive kernel with extra steps. Renaming it to 1.0.0's
+`Array` made no difference; the container was the problem, not the spelling.
+
+**Fix:** hold the tiles in a `SIMD[dtype, TM*TN]` instead — one register-resident value
+of the same length, indexed identically by the `comptime` loops. That restored
+**3.99 ms / 4,303 GFLOP/s**, matching b2 exactly. Both files now use `SIMD` tiles.
+
+The lesson generalizes past this toolchain bump, and is worth teaching: *"these live in
+registers" is a property of the generated code, not of your intent.* The only way to know
+is to time it — and to keep a recorded number like this one to time it against.
+
+### Training-loop timings (`04` vs `04b`, ms/epoch, warmup excluded)
+
+| size | CPU `04` | GPU `04b` | verdict |
+|---|---|---|---|
+| `N=256, H=16` (default) | 0.027 ms | 0.27 ms | GPU **10× slower** (was ~30× on b2 — launch overhead fell) |
+| `N=8192, H=1024` | 117 ms | 7.5 ms | GPU **15× faster** (unchanged from b2) |
+
+Both files still print the identical loss curve at the default size
+(`2.1783555 → 0.00056147523`), bit-for-bit, which is how the GPU kernels are known correct.
+
 ## 🗂️ Files
 
 - `03a_matmul_naive.mojo` — Mojo **naive** matmul on the Apple GPU (run: `uv run mojo 03a_matmul_naive.mojo`)

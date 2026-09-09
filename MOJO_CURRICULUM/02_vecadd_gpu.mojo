@@ -7,11 +7,16 @@
 # The kernel is a plain function (no CUDA decorators). `global_idx.x` gives each
 # thread its own global element index. We round the launch up to whole blocks, so
 # the last block overhangs N — hence the `if tid < size` guard.
+#
+# Mojo 1.0 note: a scalar kernel argument must be a FIXED-WIDTH type. `size: Int`
+# is rejected — "Int and UInt do not conform to DevicePassable" — because the host
+# and the device need not agree on how wide a plain `Int` is. So we declare it
+# `Int32` and widen with `Int(...)` inside the kernel where we compare it.
 
 from std.math import ceildiv
 from std.sys import has_accelerator
 from std.gpu import global_idx
-from std.gpu.host import DeviceContext
+from max.gpu.host import DeviceContext
 from std.time import perf_counter_ns
 from layout import TileTensor, row_major
 
@@ -35,11 +40,11 @@ def vecadd_kernel(
     a: TileTensor[dtype, type_of(layout), MutAnyOrigin],
     b: TileTensor[dtype, type_of(layout), MutAnyOrigin],
     c: TileTensor[dtype, type_of(layout), MutAnyOrigin],
-    size: Int,
+    size: Int32,
 ):
     comptime assert a.flat_rank == 1 and b.flat_rank == 1 and c.flat_rank == 1
     var tid = global_idx.x           # this thread's element (block_idx*block_dim + thread_idx)
-    if tid < size:                   # last block overhangs N — guard it
+    if tid < Int(size):              # last block overhangs N — guard it
         c[tid] = a[tid] + b[tid]     # one element; same layout, so no rebind needed
 
 
@@ -71,14 +76,14 @@ def main() raises:
     var grid = ceildiv(N, BLOCK)
 
     # Warmup: the first launch pays one-time compile/allocation costs — exclude it.
-    ctx.enqueue_function[vecadd_kernel](a, b, c, N, grid_dim=grid, block_dim=BLOCK)
+    ctx.enqueue_function[vecadd_kernel](a, b, c, Int32(N), grid_dim=grid, block_dim=BLOCK)
     ctx.synchronize()
 
     # Timed: kernel execution only (NOT the host<->device copies, which would make
     # the GPU look even worse for a job this trivial).
     var t0 = perf_counter_ns()
     for _ in range(ITERS):
-        ctx.enqueue_function[vecadd_kernel](a, b, c, N, grid_dim=grid, block_dim=BLOCK)
+        ctx.enqueue_function[vecadd_kernel](a, b, c, Int32(N), grid_dim=grid, block_dim=BLOCK)
     ctx.synchronize()
     var t1 = perf_counter_ns()
     var gpu_ms = Float64(t1 - t0) / Float64(ITERS) / 1.0e6

@@ -5,6 +5,30 @@ on an M4 Max, built as tutorial-paced, heavily-commented example programs. Start
 **CURRICULUM.md** for the per-file walkthrough; this README is the map and the story
 that ties the pieces together.
 
+## 📦 Setup — the venvs are not in this repo
+
+Two virtual environments are deliberately **not committed** (`.venv` alone is ~1 GB). Both are
+reproducible, and versions are pinned so you get the same toolchain:
+
+```bash
+uv sync                  # creates .venv from pyproject.toml + uv.lock (~1 GB, a minute or two)
+./setup_nabla_venv.sh    # creates .venv-nabla — only needed for train_nabla_mlp.py
+```
+
+`uv run` below will create `.venv` on its own if you skip the first command. Note that **Mojo is
+not installed on `PATH`** — it arrives as an ordinary dependency inside `.venv`, which is why
+everything goes through `uv run mojo ...` (or `./.venv/bin/mojo`, never a bare `mojo`). Nabla
+needs its own venv because it pins to Modular *nightly*, while `.venv` stays on a pinned release.
+
+**Toolchain: Mojo 1.0.0 / MAX 26.5.0**, pinned exactly (`==`, never `>=`) in
+`pyproject.toml`. The curriculum was migrated from 1.0.0b2 on **2026-09-09**; b2 code
+does not compile on 1.0.0, and a floating pin is what let a `uv lock --upgrade` break
+every GPU file silently. Upgrading is a deliberate act: bump both pins, then re-run the
+whole ladder. `UPDATE_TO_100.md` records the migration and what it found.
+
+`max` is required for more than serving — `parallelize` (`max.algorithm`) and
+`DeviceContext` (`max.gpu.host`) both live there now, so even the CPU-only files need it.
+
 ## 🧵 One operation, three tiers
 
 The whole directory circles a single question: **when the GPU does matrix math, who
@@ -39,7 +63,7 @@ engine runs when serving Qwen in `max_serve_litellm.sh` is, underneath, the same
 operation. The three tiers are three answers to "who writes it, and when is that you?"
 
 **This bridge is runnable — see `05_custom_max_op.py`.** The `relu` from `04`/`04b` is
-registered as a custom MAX op (`custom_op_kernels/relu.mojo`, `@compiler.register`) and
+registered as a custom MAX op (`custom_op_kernels/relu.mojo`, `@register`) and
 executed as a node in a MAX graph, verified on the Metal GPU. That's the capstone: MAX
 running *your* Mojo kernel — the endgame of the whole "move to the Mojo ecosystem?" question.
 
@@ -82,21 +106,6 @@ idea per step. Capped by `05_custom_max_op.py` (+ `custom_op_kernels/relu.mojo`)
 `CURRICULUM.md` (the per-file "why") · `MLIR_MOJO_MAX.md` (how MLIR, Mojo, and MAX
 relate) · `MAX_VS_MOJO_GETTING_STARTED.md` (teaching notes: where to run it) ·
 `RMB_SIMD_NOTES.txt` (SIMD mental model for 00/01) · `RESULTS01.md` (recorded results).
-
-## 📦 Setup — the venvs are not in this repo
-
-Two virtual environments are deliberately **not committed** (`.venv` alone is ~1 GB). Both are
-reproducible, and versions are pinned so you get the same toolchain:
-
-```bash
-uv sync                  # creates .venv from pyproject.toml + uv.lock (~1 GB, a minute or two)
-./setup_nabla_venv.sh    # creates .venv-nabla — only needed for train_nabla_mlp.py
-```
-
-`uv run` below will create `.venv` on its own if you skip the first command. Note that **Mojo is
-not installed on `PATH`** — it arrives as an ordinary dependency inside `.venv`, which is why
-everything goes through `uv run mojo ...`. Nabla needs its own venv because it pins to Modular
-*nightly*, while `.venv` stays on a pinned release.
 
 ## 🏃 Running
 
