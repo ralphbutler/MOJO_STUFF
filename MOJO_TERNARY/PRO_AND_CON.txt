@@ -1,0 +1,15 @@
+In silicon, an 8-bit multiplier is large and power-hungry. For ternary weights you don't need one at all — just negate/zero/pass, then add. A mux and an adder is a fraction of the area and power of a multiply-accumulate unit. So on the same die you could pack far more ternary MACs than int8 MACs: more throughput per mm², more per watt. That's BitNet's actual thesis, and it's a hardware argument, not a software one.
+
+Why nobody's building it: every existing CPU and GPU already has general-purpose multipliers. Running ternary through them wastes most of the multiplier but costs nothing extra — so there's no reason to spend silicon on ternary-specific units until ternary models are proven and in demand. And that demand is hard to build without the hardware advantage. Chicken and egg.
+
+You can see the industry choosing the other side of it right now: M5's Neural Accelerators are FP16/INT8 matrix units — general-purpose. And Metal is adding 2-bit data types in macOS 27. That's the bandwidth win being productized, not multiplier-free compute. They're optimizing the thing we measured as mattering, and skipping the thing that would need new silicon.
+
+Which puts today's negative results in a better light than I'd been giving them: we didn't fail to find the arithmetic win, we demonstrated it's unavailable on general-purpose hardware. That's the reason it needs dedicated silicon — and a fair thing to tell your colleagues, since it's the part of the ternary story that's actually still ahead of us rather than oversold.
+
+----------------
+
+We have an engine that reads real ternary GGUF files and reproduces HuggingFace's logits exactly. That part is verified, not claimed. It runs within 2× of llama.cpp's CPU path — a mature C++ codebase with years in it. Two upstream bugs came out of it, including one that makes PrismML's own reference engine refuse the file their model card recommends.
+
+And the thing you worked out tonight is the most interesting result in it: ternary's file-size advantage over real quants is ~2–3×, not 8×; the arithmetic win doesn't exist on general-purpose silicon; and that's precisely why it needs dedicated hardware nobody's building yet. That's a sharper position than the one you started the day telling colleagues, and you'd have got there no other way than by building the thing and measuring it.
+
+Whether that's worth an email is yours to judge, and you know your audience. If the speed number is what makes it unsendable, that's a fair call.

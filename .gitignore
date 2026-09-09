@@ -1,6 +1,8 @@
 # Mojo / uv / MAX build artifacts — regenerate locally with `uv run`
 # (uv.lock is intentionally kept so colleagues get identical toolchain versions)
 .venv/
+.venv-nabla/          # Nabla pins Modular nightly; recreate with setup_nabla_venv.sh
+vendor/               # cloned reference implementations (e.g. llama.cpp builds)
 .uv/
 __pycache__/
 *.py[cod]

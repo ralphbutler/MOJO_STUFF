@@ -83,6 +83,21 @@ idea per step. Capped by `05_custom_max_op.py` (+ `custom_op_kernels/relu.mojo`)
 relate) · `MAX_VS_MOJO_GETTING_STARTED.md` (teaching notes: where to run it) ·
 `RMB_SIMD_NOTES.txt` (SIMD mental model for 00/01) · `RESULTS01.md` (recorded results).
 
+## 📦 Setup — the venvs are not in this repo
+
+Two virtual environments are deliberately **not committed** (`.venv` alone is ~1 GB). Both are
+reproducible, and versions are pinned so you get the same toolchain:
+
+```bash
+uv sync                  # creates .venv from pyproject.toml + uv.lock (~1 GB, a minute or two)
+./setup_nabla_venv.sh    # creates .venv-nabla — only needed for train_nabla_mlp.py
+```
+
+`uv run` below will create `.venv` on its own if you skip the first command. Note that **Mojo is
+not installed on `PATH`** — it arrives as an ordinary dependency inside `.venv`, which is why
+everything goes through `uv run mojo ...`. Nabla needs its own venv because it pins to Modular
+*nightly*, while `.venv` stays on a pinned release.
+
 ## 🏃 Running
 
 ```bash

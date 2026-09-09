@@ -1,0 +1,17 @@
+[project]
+name = "mojo-ternary"
+version = "0.1.0"
+description = "From-scratch ternary (1.58-bit) LLM inference engine in Mojo for Apple Silicon CPU."
+readme = "IDEA_CURR.md"
+requires-python = ">=3.12"
+dependencies = [
+    "max==26.5.0",
+    # PINNED, not >=. Mojo syntax still churns between releases; a floating one
+    # would silently pull the next release into a fresh .venv and break a build
+    # that had already passed. Upgrading is a deliberate act: bump this, then
+    # re-run q2_dot.mojo and confirm the scalar/SIMD parity check still holds.
+    "mojo==1.0.0",
+]
+
+[tool.uv]
+prerelease = "allow"

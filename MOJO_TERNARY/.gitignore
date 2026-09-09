@@ -1,0 +1,24 @@
+# Reproducible — never commit. Recreate with `uv sync`.
+.venv/
+
+# The llama.cpp reference implementation (~1.0 GB: 805 MB build + 36 MB .git).
+# Recreate with:
+#   mkdir -p vendor && cd vendor
+#   git clone --depth 1 -b prism https://github.com/PrismML-Eng/llama.cpp.git
+#   cd llama.cpp && cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+#   cmake --build build -j 16 --target llama-bench llama-cli
+vendor/
+
+# Reference activations dumped by oracle/dump_reference.py (~3 MB of float32).
+# Recreate with:
+#   uv run --with torch --with transformers --with safetensors oracle/dump_reference.py
+oracle/ref/
+
+# Models live in the HuggingFace cache, not here. Fetch with:
+#   huggingface-cli download prism-ml/Ternary-Bonsai-1.7B-gguf Ternary-Bonsai-1.7B-PQ2_0.gguf
+*.gguf
+*.safetensors
+
+# Build artifacts
+*.o
+*.dylib
