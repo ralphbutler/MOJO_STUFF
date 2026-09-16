@@ -1,5 +1,9 @@
 # 🛠️ REPORT — Reproducing Mojo on ALCF Aurora (from zero)
 
+> **Phase 1 report (CPU-only, 2026-07-08).** The container setup here is still the base for
+> Phase 2. *Update 2026-09-14:* "GPU is out of scope" is superseded — **Phase 2 targets the PVC
+> GPUs** via a Mojo → SPIR-V → Level Zero path. See `AURORA_PLAN.md` (G0–G5).
+
 **Purpose:** an ordered, copy-pasteable procedure to stand up the Mojo toolchain on Aurora
 (Intel CPU target) and run CPU workloads, capturing every gotcha so the next person doesn't
 rediscover them. Aurora's defining twist vs the Polaris sibling: **Mojo will not install on the

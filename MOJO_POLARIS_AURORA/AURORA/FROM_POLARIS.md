@@ -2,7 +2,8 @@
 
 Written 2026-07-08 at the end of the **Polaris (NVIDIA A100)** bring-up, while the lessons
 were fresh, so the Aurora port doesn't rediscover them. Aurora is a *different* machine (Intel
-CPU, no GPU backend), so treat this as **methodology to adapt**, not values to copy verbatim.
+CPUs + Intel Max GPUs, no prebuilt Mojo GPU backend), so treat this as **methodology to adapt**,
+not values to copy verbatim.
 
 **Reference docs (siblings — relative links work):**
 - `../POLARIS/REPORT_SETUP.md` — the full from-zero reproduction guide (the model for what an
@@ -52,9 +53,12 @@ CPU, no GPU backend), so treat this as **methodology to adapt**, not values to c
   That fixes an NVIDIA-driver/CUDA mismatch. **Aurora has no CUDA and no NVIDIA driver — this
   line is meaningless (and wrong) there.**
 - **All A100 GPU numbers** and any `has_accelerator() == True` expectation. On Aurora
-  `has_accelerator()` is **False by design** (no Intel-Xe/Level-Zero backend in Mojo). The GPU
-  matmul/train kernels (`02/03a-d/04b`) will not run; Aurora is the **CPU-only** experiment
-  (SIMD + `parallelize` on Sapphire Rapids + HBM). This is already the AURORA_PLAN thesis.
+  `has_accelerator()` is **False** with the *prebuilt* Mojo (no Intel-Xe/Level-Zero backend),
+  so the GPU matmul/train kernels (`02/03a-d/04b`) will not run **as-is**.
+  *(Updated 2026-09-14:)* Phase 1 was the CPU-only experiment. **Phase 2 aims to run those
+  same workloads on the PVC GPUs** via a Mojo → SPIR-V → Level Zero path we build ourselves
+  (a workaround through Mojo's Metal backend; vector add passed 2026-09-15). The A100 numbers are the **comparison targets**, not
+  expectations. See `AURORA_PLAN.md` G0–G5.
 
 ---
 

@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:40:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g5_e2e
+#PBS -j oe
+
+# G5 step 4: run an UNMODIFIED MOJO_CURRICULUM GPU program — host code and all — on an Aurora PVC
+# tile, compiled by our forked Mojo (spirv64 backend) and executed through our Level Zero
+# implementation of DeviceContext's AsyncRT_* runtime.
+#
+# Needs: prepare_fork.sh + build_fork.pbs (the fork), and build_runtime.sh (the runtime).
+# Submit from MOJO_WORK/AURORA/gpu:   qsub e2e_run.pbs
+# One program:                        qsub -v G5_PROGS="02_vecadd_gpu" e2e_run.pbs
+# Output: mojo_g5_e2e.o<jobid>. No inline comments after #PBS values (Aurora PBS rejects them).
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+PROGS=${G5_PROGS:-"02_vecadd_gpu 03c_matmul_coarse 04b_train_mlp_gpu"}
+
+# One tile, as in G1-G4.
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+sycl-ls 2>&1 | grep level_zero
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+cd "$REPO" || { echo "error: $REPO missing — run prepare_fork.sh"; exit 1; }
+
+for prog in $PROGS; do
+    echo
+    echo "################ $prog (unmodified) ################"
+    ./bazelw run //Mojo:mojo -- run \
+        --target-accelerator intel-pvc \
+        -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+        -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+        "$G/curriculum/$prog.mojo" 2>&1 | grep -v "^\[[0-9,]* / [0-9,]*\]"
+    echo "== $prog exit ${PIPESTATUS[0]}"
+done
+echo "== done $(date)"

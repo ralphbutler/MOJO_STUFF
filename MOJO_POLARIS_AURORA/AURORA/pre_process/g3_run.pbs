@@ -1,0 +1,53 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:30:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g3
+#PBS -j oe
+
+# G3 job: all four Mojo matmul kernels on one PVC tile, then the oneMKL yardstick.
+# Submit from MOJO_WORK/AURORA/gpu:   qsub g3_run.pbs
+# Subset of kernels:                  qsub -v G3_VARIANTS="naive check" g3_run.pbs
+# oneMKL yardstick only:              qsub -v G3_VARIANTS=none g3_run.pbs
+# Output: mojo_g3.o<jobid>. No inline comments after #PBS values (Aurora PBS rejects them).
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu
+cd "$W"
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export G3_VARIANTS="${G3_VARIANTS:-naive check tiled coarse}"
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+grep VERSION= /etc/os-release
+echo "== sycl-ls (should show exactly 1 device)"
+sycl-ls 2>&1 | grep level_zero
+ls -l g3_*.spv g3_*.spv.args
+
+if [ "$G3_VARIANTS" != "none" ]; then
+    echo
+    echo "################ Mojo kernels ################"
+    "$W/.venv/bin/mojo" run -I "$W" "$W/g3_matmul_lz.mojo"
+    echo "== mojo exit code $?"
+fi
+
+echo
+echo "################ oneMKL SGEMM direct (SYCL) ################"
+if [ -x "$W/g3_mkl_sgemm" ]; then
+    "$W/g3_mkl_sgemm" 2048 50
+    echo "== mkl exit code $?"
+else
+    echo "g3_mkl_sgemm not built (build on uan-0007: icpx -fsycl -qmkl -O2 g3_mkl_sgemm.cpp -o g3_mkl_sgemm)"
+fi
+
+echo
+echo "################ oneMKL via PyTorch XPU (optional) ################"
+# NOT piped: `module load ... | tail` runs module in a subshell and loses the environment.
+module load frameworks
+module list 2>&1 | grep -i frameworks
+which python
+echo "== libglog candidates (torchcomms needs libglog.so.0; missing on next-eval 2026-09-15):"
+find /opt/aurora/26.181.0 /soft -maxdepth 8 -name 'libglog.so*' 2>/dev/null | head -5
+python "$W/g3_bench_torch_xpu.py" 2048 50
+echo "== torch exit code $?"

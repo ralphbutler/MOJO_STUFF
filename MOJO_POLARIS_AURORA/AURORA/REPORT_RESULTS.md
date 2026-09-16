@@ -1,5 +1,10 @@
 # 📊 REPORT — Mojo on ALCF Aurora (Intel CPU): Results
 
+> **Phase 1 report (CPU-only, 2026-07-08).** Kept as written. *Update 2026-09-14/15:* **Phase 2 targets
+> Aurora's GPUs** via a workaround route (Mojo Metal-backend IR → SPIR-V → Level Zero, prebuilt tools
+> only); a Mojo-written vector add passed on one tile 2026-09-15. "No Mojo GPU backend" below still holds for the *prebuilt* toolchain. See
+> `AURORA_PLAN.md` (G0–G5).
+
 **2026-07-08.** Status: **L0–L4 complete + a NUMA experiment (L5a)** — all correctness PASS.
 Aurora is the CPU-only Intel target (no Mojo GPU backend). Companion: `REPORT_SETUP.md` (how to
 reproduce), `AURORA_RESULTS.md` (detailed running log), `AURORA_PLAN.md` (task ladder). Polaris

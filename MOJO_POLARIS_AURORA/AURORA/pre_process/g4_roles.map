@@ -1,0 +1,30 @@
+# g4_roles.map — role names for the kernels of MOJO_CURRICULUM/04b_train_mlp_gpu.mojo.
+#
+# Format: <role> <signature>, where the signature comes from `air_roles.py survey`.
+# The role name becomes the .spv basename (g4_<role>.spv) and the SPIR-V entry point,
+# which is what g4_train_mlp_lz.mojo binds against.
+#
+# Why signatures and not filenames: Mojo names each sidecar with a mangling hash, and the
+# generic kernels are instantiated once per TensorLayout. The layout strides compiled into
+# the body are what actually distinguish them (N=256, D=2, H=16):
+#   matmul_kernel   strides 2,16,16 -> A stride D=2, B/C stride H=16  -> K_fwd1 (X @ W1)
+#   matmul_kernel   strides 16      -> A stride H=16, B/C stride 1    -> K_fwd2 (a1 @ W2)
+#   matmul_at_b_k   strides 2,16,16 -> C stride H, A stride D         -> K_dW1
+#   matmul_at_b_k   strides 16      -> C stride 1, A stride H         -> K_dW2
+#   colsum_kernel   strides 16      -> input row stride H             -> K_db1
+#   colsum_kernel   strides (none)  -> input row stride 1             -> K_db2
+# If 04b's dimensions or kernels change, the signatures change and build_kernels.sh fails
+# loudly rather than mapping a kernel to the wrong role.
+
+fwd1      04b_train_mlp_gpu_matmul_kernel|buffers=3 consts=3|strides=2,16,16
+fwd2      04b_train_mlp_gpu_matmul_kernel|buffers=3 consts=3|strides=16
+dW1       04b_train_mlp_gpu_matmul_at_b_k|buffers=3 consts=3|strides=2,16,16
+dW2       04b_train_mlp_gpu_matmul_at_b_k|buffers=3 consts=3|strides=16
+da1       04b_train_mlp_gpu_matmul_a_bt_k|buffers=3 consts=3|strides=16
+biasrelu  04b_train_mlp_gpu_bias_relu_ker|buffers=3 consts=2|strides=16
+addb2     04b_train_mlp_gpu_add_bias1_ker|buffers=2 consts=1|strides=
+dz2       04b_train_mlp_gpu_dz2_kernel|buffers=3 consts=2|strides=
+relugrad  04b_train_mlp_gpu_relu_grad_ker|buffers=3 consts=2|strides=16
+db1       04b_train_mlp_gpu_colsum_kernel|buffers=2 consts=2|strides=16
+db2       04b_train_mlp_gpu_colsum_kernel|buffers=2 consts=2|strides=
+sgd       04b_train_mlp_gpu_sgd_kernel|buffers=2 consts=2|strides=

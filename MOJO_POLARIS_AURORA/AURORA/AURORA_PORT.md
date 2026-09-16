@@ -1,27 +1,52 @@
 # 🌌 Porting Mojo to Aurora (Argonne) — One-Node Experiment
 
-**Goal:** get a graduated set of Mojo programs running on a single Aurora node, and see
-how far portable Mojo **CPU** code scales on its unusual hardware.
+**Goal (revised 2026-09-14):** make Aurora work **the way Polaris did** — Mojo code running on
+Aurora's **GPUs**, not just its CPUs. Phase 1 (below) measured how far portable Mojo **CPU**
+code scales; Phase 2 targets the Intel Max GPUs. Checklist: `AURORA_PLAN.md` (G0→G5).
 
-**Status (2026-07-08): L0 PASSED on Aurora — via an apptainer container.** The bare-host
-install is **impossible** (all Modular Mojo wheels need glibc ≥ 2.34; Aurora is glibc 2.31),
-so Mojo runs inside an Ubuntu-24.04 (glibc 2.39) apptainer image built on a *compute* node.
-Confirmed: `has_accelerator=False`, `simd f32=16` (AVX-512), 102 physical cores, correct
-execution. Full detail + the PyPI wheel survey in `AURORA_RESULTS.md`. CPU ladder L1–L4 next.
+**Status:**
+- **Phase 1 — CPU ladder: DONE (2026-07-08).** Mojo runs inside an Ubuntu-24.04 apptainer image
+  (bare host is glibc 2.31; wheels need ≥ 2.34). L0/L2/L3/L4 pass; L5a done. Detail in
+  `AURORA_RESULTS.md`.
+- **Phase 2 — GPU ladder: started 2026-09-14, prompted by the open-sourcing of the Mojo compiler.**
+  G0–G2 passed by 2026-09-15 via a workaround route using only prebuilt tools (Metal backend IR →
+  SPIR-V → Level Zero). The open-source code was used for understanding, not in the pipeline. See
+  the claims section in `AURORA_RESULTS.md`.
+- **Direction reset 2026-09-15 (Ralph):** the project is layer 3 below, the `spirv64` backend in the
+  open-source compiler. The workaround (layers 1–2) is finished groundwork and frozen. Next: G5-scope.
 
-## ⛔ The one hard constraint: Aurora's GPUs are off the table
+## 🟢 Aurora's GPUs: back on the table (2026-09-14)
 
-Aurora's FLOPs come from **6× Intel Data Center GPU Max (Ponte Vecchio)** per node.
-Mojo's GPU backends are **CUDA / HIP / Metal only** — there is **no Intel Xe / Level-Zero /
-SYCL backend**. So on Aurora:
+Aurora's FLOPs come from **6× Intel Data Center GPU Max 1550 (Ponte Vecchio)** per node, i.e.
+12 Level Zero ("LZ") devices. The **prebuilt** Mojo still has only CUDA / HIP (AMD) / Metal GPU
+backends, so `has_accelerator()` stays **False** and the `POLARIS/` GPU kernels won't run as-is.
 
-- `has_accelerator()` will return **False**.
-- None of our GPU matmul kernels (`matmul_gpu*.mojo`) will run.
+What changed: Mojo 1.0's compiler is now open source (Apache 2.0). Reading the tree
+(`github.com/modular/modular`):
 
-There is no workaround today. The experiment is therefore **CPU-only** — which is still
-genuinely interesting here.
+- **Open:** the compiler backend interface (`TargetBackend` / `TargetTraits` / `TargetLowering`
+  registries, selected by target triple), stdlib vendor hooks (`std/_plugin`, with an
+  `ADDITIONAL_TARGETS` slot), and the Mojo side of `max.gpu`.
+- **Closed:** the NVIDIA/AMD/Metal code generators (only a Host backend is in the tree) and
+  MAX's GPU device runtime behind `DeviceContext`.
+- The prebuilt `mojo build` already supports `--emit llvm` and `--target-triple`.
 
-## 💡 Why the CPU side is worth it
+So the Intel path is ours to build, in layers:
+
+1. **Host side:** Mojo → Level Zero FFI (context, device, SPIR-V module, kernel, buffers). The
+   community `mojo-intel-gpu` package already does this on Arc; untested on PVC.
+2. **Kernels:** Mojo source → LLVM IR → `spir64` → `llvm-spirv` → SPIR-V, launched by (1).
+   This is **workload parity** with Polaris: same kernels, Mojo-written, on PVC.
+   *(2026-09-15: the LLVM IR that worked comes from Mojo's **Metal** backend, not `--emit llvm`;
+   see `pre_process/README.md`. Vector add passed.)*
+3. **The project — source parity:** a `spirv64` backend in a forked OSS compiler, plus a Level Zero
+   runtime with the `DeviceContext` API, so the same Mojo GPU programs run unmodified.
+   *(Written as "stretch" on 2026-09-14; corrected 2026-09-15 — this was always Ralph's goal.)*
+4. **Not reachable:** MAX inference (`max generate` / `LLM`) on PVC — closed runtime.
+
+Full evidence, risks and odds: `../WHY_NOT_GPUS_ON_AURORA.txt` (UPDATE 2026-09-14).
+
+## 💡 Why the CPU side was worth it (Phase 1)
 
 Each Aurora node has **2× Intel Xeon CPU Max (Sapphire Rapids)** ≈ **104 physical cores**,
 with **AVX-512**, **AMX** (on-chip matrix units), and **on-package HBM**. That combination —
@@ -32,7 +57,9 @@ high core count *and* GPU-class memory bandwidth — is rare. The real question 
 That's a better story than re-running the GPU demo, and it directly tests Mojo's
 "performance-portable" claim on non-NVIDIA HPC iron.
 
-## 🪜 The graduated ladder (CPU, single node)
+## 🪜 Phase 1 ladder (CPU, single node) — done
+
+For the Phase 2 GPU ladder (G0–G5), see `AURORA_PLAN.md`.
 
 | Lvl | Program | What it proves |
 |---|---|---|

@@ -1,0 +1,67 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=02:00:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g5_build
+#PBS -j oe
+
+# G5 step 4: build the forked open-source Mojo compiler (our spirv64 backend) for Linux x86_64 on a
+# next-eval compute node, then smoke-test it and re-emit the curriculum vecadd kernel on Aurora.
+# Prepare first on uan-0007:  bash prepare_fork.sh
+# Submit from MOJO_WORK/AURORA/gpu:  qsub build_fork.pbs
+# Output: mojo_g5_build.o<jobid>. No inline comments after #PBS values (Aurora PBS rejects them).
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+
+# Compute nodes reach the internet only through the ALCF proxy (Bazel and bazelisk downloads).
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTPS_PROXY
+export no_proxy=localhost,127.0.0.1
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+grep VERSION= /etc/os-release
+echo "== cores $(nproc), mem $(free -g | awk '/Mem:/{print $2}') GB"
+cd "$REPO" || { echo "error: $REPO missing — run prepare_fork.sh on uan-0007"; exit 1; }
+git rev-parse HEAD
+cat local.bazelrc
+
+echo
+echo "################ build //Mojo:mojo ################"
+t0=$(date +%s)
+./bazelw build //Mojo:mojo 2>&1 | grep -v "^\[[0-9,]* / [0-9,]*\]" | tail -60
+rc=${PIPESTATUS[0]}
+echo "== build exit $rc after $(( $(date +%s) - t0 )) s"
+[ "$rc" = 0 ] || exit "$rc"
+
+echo
+echo "################ smoke ################"
+cat > "$W/bazel/hello_smoke.mojo" <<'EOF'
+def main():
+    var s: Int = 0
+    for i in range(10):
+        s += i
+    print("hello from the forked Mojo on Aurora", s)
+EOF
+./bazelw run //Mojo:mojo -- --version 2>&1 | tail -1
+./bazelw run //Mojo:mojo -- run "$W/bazel/hello_smoke.mojo" 2>&1 | tail -1
+./bazelw run //Mojo:mojo -- build --print-supported-accelerators 2>&1 | grep -A2 "Intel"
+
+echo
+echo "################ re-emit curriculum vecadd on Aurora ################"
+CUR=$W/bazel/cur
+mkdir -p "$CUR"
+ln -sf "$G/curriculum/02_vecadd_gpu.mojo" "$CUR/curriculum_02.mojo"
+./bazelw run //Mojo:mojo -- run -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" -I "$CUR" \
+    "$G/emit_vecadd.mojo" "$W/bazel/g5_vecadd_aurora" 2>&1 | grep -E "wrote|error" | cut -c1-200
+if cmp "$W/bazel/g5_vecadd_aurora.spv" "$G/g5_vecadd.spv"; then
+    echo "== g5_vecadd.spv built on Aurora is BYTE-IDENTICAL to the Mac build"
+else
+    echo "== g5_vecadd.spv differs from the Mac build (sizes: $(stat -c %s "$W/bazel/g5_vecadd_aurora.spv") vs $(stat -c %s "$G/g5_vecadd.spv"))"
+fi
+echo "== done $(date)"

@@ -1,0 +1,66 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=01:00:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g5_aot
+#PBS -j oe
+
+# G5 hardening: the ahead-of-time path. Builds the `max` and `layout` Mojo packages WITH OUR FORK
+# (so the compiled packages replace the -I source trees), then compiles the UNMODIFIED curriculum
+# program to a standalone executable with `mojo build`, links it against our Level Zero runtime,
+# and runs that executable on a PVC tile.
+#
+# `mojo run` (JIT) is what e2e_run.pbs proved; this checks the other half.
+# Submit from MOJO_WORK/AURORA/gpu:  qsub e2e_aot.pbs
+# One program:                       qsub -v G5_PROGS="02_vecadd_gpu" e2e_aot.pbs
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+OUT=$W/aot
+PROGS=${G5_PROGS:-"02_vecadd_gpu 03c_matmul_coarse 04b_train_mlp_gpu"}
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+export LD_LIBRARY_PATH=$RTLIB:${LD_LIBRARY_PATH:-}
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+mkdir -p "$OUT"
+cd "$REPO" || { echo "error: $REPO missing — run prepare_fork.sh"; exit 1; }
+
+echo
+echo "################ build the max + layout packages with our fork ################"
+./bazelw build //max/mojo/max:max //max/kernels/src/layout:layout 2>&1 | tail -5
+ls -l bazel-bin/max/mojo/max/max.mojoc bazel-bin/max/kernels/src/layout/layout.mojoc
+PKGS=$OUT/pkgs
+mkdir -p "$PKGS"
+cp bazel-bin/max/mojo/max/max.mojoc bazel-bin/max/kernels/src/layout/layout.mojoc "$PKGS/"
+
+for prog in $PROGS; do
+    echo
+    echo "################ $prog — mojo build (ahead of time) ################"
+    ./bazelw run //Mojo:mojo -- build \
+        --target-accelerator intel-pvc \
+        -I "$PKGS" \
+        -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+        -Xlinker -rpath -Xlinker "$RTLIB" \
+        "$G/curriculum/$prog.mojo" -o "$OUT/$prog" 2>&1 \
+        | grep -vE "^\[[0-9,]+ / [0-9,]+\]|warning:|note:|Imported from|Included from|^ +[~^]" | tail -15
+    echo "== build exit ${PIPESTATUS[0]}"
+    if [ -x "$OUT/$prog" ]; then
+        ls -l "$OUT/$prog"
+        echo "== run $OUT/$prog"
+        "$OUT/$prog"
+        echo "== run exit $?"
+    else
+        echo "== no executable produced"
+    fi
+done
+echo "== done $(date)"

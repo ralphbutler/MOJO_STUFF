@@ -1,0 +1,256 @@
+"""Kernel management — loading, argument binding, and dispatch.
+
+Provides Kernel as a high-level wrapper for SPIR-V kernel operations.
+Handles module loading, argument setup, and launch configuration.
+"""
+from std.memory import Pointer, bitcast
+from std.memory.alloc import unsafe_alloc
+from std.pathlib import Path
+from ..l0.types import ZeGroupCount
+from ..l0.loader import LevelZeroLibrary
+
+
+struct Kernel(Movable):
+    """High-level kernel wrapper for Intel GPU.
+
+    Manages SPIR-V module loading, kernel creation, argument binding,
+    and dispatch configuration.
+
+    Usage:
+        kernel = Kernel(ctx.library(), ctx.context(), ctx.device(), ctx.command_list(), "vector_add.spv", "vector_add")
+        kernel.set_arg_pointer(0, device_ptr_a)
+        kernel.set_arg_pointer(1, device_ptr_b)
+        kernel.set_arg_pointer(2, device_ptr_c)
+        kernel.set_arg_value(3, 4, UInt64(n_value))
+        kernel.launch(ZeGroupCount(4, 1, 1))
+        ctx.synchronize()
+
+    Lifetime: `self` borrows the Level Zero library and context/device/
+    command-list handles from the owning `IntelGPUContext`. The context
+    must outlive every Kernel created from it; destroying the context
+    first makes any later use or deinit of the Kernel undefined behavior.
+    """
+    var _lib: Pointer[LevelZeroLibrary, ImmUntrackedOrigin]
+    var _context: Int
+    var _device: Int
+    var _cmdlist: Int
+    var _module: Int
+    var _kernel: Int
+    var _spv_data: List[UInt8]
+    var _kernel_name: String
+
+    def __init__(out self, lib: Pointer[LevelZeroLibrary, ImmUntrackedOrigin],
+                 context: Int, device: Int,
+                 cmdlist: Int, spirv_path: String, kernel_name: String) raises:
+        """Load a SPIR-V kernel from file.
+
+        Args:
+            lib: Borrowed Level Zero library from the owning context.
+            context: Level Zero context handle.
+            device: Level Zero device handle.
+            cmdlist: Command list handle.
+            spirv_path: Path to SPIR-V binary file.
+            kernel_name: Name of the kernel function in the SPIR-V module.
+
+        Raises:
+            Error: If loading fails.
+        """
+        self._lib = lib
+        self._context = context
+        self._device = device
+        self._cmdlist = cmdlist
+        self._module = Int(0)
+        self._kernel = Int(0)
+        self._spv_data = List[UInt8]()
+        self._kernel_name = kernel_name
+
+        # Read SPIR-V binary
+        var path = Path(spirv_path)
+        self._spv_data = path.read_bytes()
+        if len(self._spv_data) < 4:
+            raise Error("SPIR-V file too small: " + spirv_path)
+        # SPIR-V magic number 0x07230203 (little-endian: 03 02 23 07).
+        # Validate before zeModuleCreate: the Intel compute-runtime aborts
+        # the process on invalid magic instead of returning an error code.
+        if (
+            self._spv_data[0] != 0x03
+            or self._spv_data[1] != 0x02
+            or self._spv_data[2] != 0x23
+            or self._spv_data[3] != 0x07
+        ):
+            raise Error("Not a valid SPIR-V binary: " + spirv_path)
+
+        var module_out = unsafe_alloc[Int](1)
+        module_out.unsafe_offset(0)[] = 0
+        var result = self._lib[].module_create(
+            context, device,
+            Int(self._spv_data.unsafe_ptr()),
+            UInt64(len(self._spv_data)),
+            Int(module_out)
+        )
+        if result.is_error():
+            module_out.unsafe_free()
+            raise Error("Module creation failed: " + String(result))
+        self._module = module_out.unsafe_offset(0)[]
+        module_out.unsafe_free()
+
+
+        # AURORA PATCH: zeKernelCreate reads a C string, and a Mojo String is not
+        # guaranteed to be NUL-terminated. Pass an explicit NUL-terminated copy.
+        var name_c = List[UInt8]()
+        for b in kernel_name.as_bytes():
+            name_c.append(b)
+        name_c.append(0)
+
+        var kernel_out = unsafe_alloc[Int](1)
+        kernel_out.unsafe_offset(0)[] = 0
+        result = self._lib[].kernel_create(
+            self._module,
+            Int(name_c.unsafe_ptr()),
+            Int(kernel_out)
+        )
+        # Keep name_c alive until AFTER the C call: Mojo destroys values right after
+        # their last use, and `unsafe_ptr()` alone would let the buffer be freed first.
+        _ = name_c^
+        if result.is_error():
+            kernel_out.unsafe_free()
+            _ = self._lib[].module_destroy(self._module)
+            self._module = Int(0)
+            raise Error("Kernel creation failed: " + String(result))
+        self._kernel = kernel_out.unsafe_offset(0)[]
+        kernel_out.unsafe_free()
+
+    def __deinit__(deinit self):
+        """Clean up kernel and module resources."""
+        if self._kernel != Int(0):
+            _ = self._lib[].kernel_destroy(self._kernel)
+        if self._module != Int(0):
+            _ = self._lib[].module_destroy(self._module)
+
+    # =========================================================================
+    # Properties
+    # =========================================================================
+
+    def module(self) -> Int:
+        """Get the module handle."""
+        return self._module
+
+    def kernel(self) -> Int:
+        """Get the kernel handle."""
+        return self._kernel
+
+    def is_valid(self) -> Bool:
+        """Check if the kernel is valid (loaded)."""
+        return self._kernel != Int(0)
+
+    # =========================================================================
+    # Argument binding
+    # =========================================================================
+
+    def set_arg_pointer(mut self, index: UInt32, device_ptr: Int) raises:
+        """Set a kernel argument to a device pointer.
+
+        Args:
+            index: Argument index (0-based).
+            device_ptr: Device pointer value.
+
+        Raises:
+            Error: If setting the argument fails.
+        """
+        var result = self._lib[].kernel_set_arg_value(
+            self._kernel, index, UInt64(8), UInt64(device_ptr)
+        )
+        if result.is_error():
+            raise Error("Failed to set kernel arg " + String(index) +
+                       ": " + String(result))
+
+    def set_arg_value(mut self, index: UInt32, size: UInt64, value: UInt64) raises:
+        """Set a kernel argument to a scalar value.
+
+        Args:
+            index: Argument index (0-based).
+            size: Size of the argument in bytes.
+            value: Argument value (as UInt64).
+
+        Raises:
+            Error: If setting the argument fails.
+        """
+        self._set_arg_value_impl(index, size, value)
+
+    def set_arg_float32(mut self, index: UInt32, value: Float32) raises:
+        """Set a Float32 kernel argument."""
+        var bits = bitcast[DType.uint32, 1](value)[0]
+        self._set_arg_value_impl(index, UInt64(4), UInt64(bits))
+
+    def set_arg_int32(mut self, index: UInt32, value: Int32) raises:
+        """Set an Int32 kernel argument."""
+        var bits = bitcast[DType.uint32, 1](value)[0]
+        self._set_arg_value_impl(index, UInt64(4), UInt64(bits))
+
+    def set_arg_uint32(mut self, index: UInt32, value: UInt32) raises:
+        """Set a UInt32 kernel argument."""
+        self._set_arg_value_impl(index, UInt64(4), UInt64(value))
+
+    def _set_arg_value_impl(mut self, index: UInt32, size: UInt64, value: UInt64) raises:
+        if size != UInt64(1) and size != UInt64(2) and size != UInt64(4) and size != UInt64(8):
+            raise Error("Kernel arg size must be 1, 2, 4, or 8 bytes, got " + String(size))
+        var result = self._lib[].kernel_set_arg_value(
+            self._kernel, index, size, value
+        )
+        if result.is_error():
+            raise Error("Failed to set kernel arg " + String(index) +
+                       ": " + String(result))
+
+    def set_group_size(mut self, x: UInt32, y: UInt32, z: UInt32) raises:
+        """Set the kernel group size.
+
+        Args:
+            x: Group size in X dimension.
+            y: Group size in Y dimension.
+            z: Group size in Z dimension.
+
+        Raises:
+            Error: If setting the group size fails.
+        """
+        var result = self._lib[].kernel_set_group_size(self._kernel, x, y, z)
+        if result.is_error():
+            raise Error("Failed to set group size: " + String(result))
+
+    def set_arg_local(mut self, index: UInt32, size: UInt64) raises:
+        """AURORA PATCH: bind `size` bytes of shared local memory to arg `index`."""
+        var result = self._lib[].kernel_set_arg_local(self._kernel, index, size)
+        if result.is_error():
+            raise Error("Failed to set local arg " + String(index) + ": " + String(result))
+
+    def set_indirect_access(mut self, flags: UInt32 = 7) raises:
+        """AURORA PATCH: declare indirect access to host(1)/device(2)/shared(4) USM.
+
+        Required when the kernel dereferences pointers read from buffers, e.g.
+        Mojo Metal-path kernels whose TileTensor args hold the data pointer.
+        """
+        var result = self._lib[].kernel_set_indirect_access(self._kernel, flags)
+        if result.is_error():
+            raise Error("Failed to set indirect access: " + String(result))
+
+    # =========================================================================
+    # Launch
+    # =========================================================================
+
+    def launch(mut self, group_count: ZeGroupCount) raises:
+        """Launch the kernel.
+
+        Args:
+            group_count: Number of work groups (x, y, z).
+
+        Raises:
+            Error: If launch fails.
+        """
+        var result = self._lib[].command_list_append_launch_kernel(
+            self._cmdlist, self._kernel, group_count,
+            Int(0),  # signal_event
+            Int(0),  # wait_events
+            UInt32(0)  # num_wait_events
+        )
+        if result.is_error():
+            raise Error("Kernel launch failed: " + String(result))
+

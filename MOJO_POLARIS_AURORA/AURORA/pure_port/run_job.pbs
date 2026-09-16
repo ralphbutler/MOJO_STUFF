@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:15:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g1
+#PBS -j oe
+
+# G1 runner: one Mojo program on one PVC tile of a next-eval (new image) node.
+# Submit from MOJO_WORK/AURORA/gpu:   qsub run_job.pbs
+# Other program:                      qsub -v MOJOFILE=<file>.mojo run_job.pbs
+# Output: mojo_g1.o<jobid> in the submit directory.
+# Note: no inline comments after #PBS values (Aurora PBS rejects them).
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu
+MOJOFILE=${MOJOFILE:-run_vecadd.mojo}
+cd "$W"
+
+# Standard single-tile environment (verified in G0.3).
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+grep VERSION= /etc/os-release
+module list 2>&1 | grep -E "oneapi|gcc"
+echo "== sycl-ls (should show exactly 1 device)"
+sycl-ls 2>&1 | grep level_zero
+echo "== files"
+ls -l "$MOJOFILE" g1_vecadd.spv
+echo "== run $MOJOFILE"
+"$W/.venv/bin/mojo" run -I "$W" "$W/$MOJOFILE"
+echo "== exit code $?"

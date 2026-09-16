@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:20:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g4
+#PBS -j oe
+
+# G4 runner: 04b MLP training on one PVC tile of a next-eval (new image) node.
+# Submit from MOJO_WORK/AURORA/gpu:   qsub g4_run.pbs
+# Needs the 12 g4_<role>.spv + .spv.args built first by g4_build_kernels.sh on uan-0007.
+# Output: mojo_g4.o<jobid> in the submit directory.
+# Note: no inline comments after #PBS values (Aurora PBS rejects them).
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu
+MOJOFILE=${MOJOFILE:-g4_train_mlp_lz.mojo}
+cd "$W"
+
+# Standard single-tile environment (verified in G0.3).
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+grep VERSION= /etc/os-release
+module list 2>&1 | grep -E "oneapi|gcc"
+echo "== sycl-ls (should show exactly 1 device)"
+sycl-ls 2>&1 | grep level_zero
+echo "== kernels"
+ls -l g4_*.spv g4_*.spv.args 2>&1
+echo "== run $MOJOFILE"
+"$W/.venv/bin/mojo" run -I "$W" "$W/$MOJOFILE"
+echo "== exit code $?"
