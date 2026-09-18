@@ -36,13 +36,13 @@ from .info import (
     has_amd_gpu_accelerator,
     has_amd_rdna_gpu_accelerator,
     has_apple_gpu_accelerator,
-    has_intel_gpu_accelerator,
+    has_intel_gpu_accelerator,  # AURORA PATCH (G5)
     has_nvidia_gpu_accelerator,
     is_amd_gpu,
     is_apple_gpu,
     is_big_endian,
     is_gpu,
-    is_intel_gpu,
+    is_intel_gpu,  # AURORA PATCH (G5)
     is_little_endian,
     is_nvidia_gpu,
     num_logical_cores,

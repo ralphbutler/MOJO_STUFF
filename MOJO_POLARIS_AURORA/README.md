@@ -27,7 +27,8 @@ matches its CPU reference, and the training loop reproduces its loss curve
 
 This is our own build of the Mojo compiler, not an official release; Modular does not support
 Intel GPUs. `AURORA/pure_port/README.md` states the limits in full — one tile, float32, an 18-function
-runtime slice, newer-system-image nodes only, and kernels untuned for this hardware.
+runtime slice, newer-system-image nodes only. Tuned for PVC, the matmul reaches 7,782 GFLOP/s
+(36.8% of oneMKL, 87% of the same kernel on an A100); the short write-up is `AURORA/ASSESSMENT.md`.
 
 Evidence for every rung, including the runs that failed and why, is in `AURORA/AURORA_RESULTS.md`.
 

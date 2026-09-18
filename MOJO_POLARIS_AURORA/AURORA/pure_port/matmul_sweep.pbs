@@ -1,0 +1,112 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=01:30:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g6_sweep
+#PBS -j oe
+
+# G6 — PVC tuning sweep. Crosses two independent register-pressure levers:
+#
+#   1. KERNEL GEOMETRY (matmul_sweep_configs.txt): the curriculum's coarse matmul holds TM*TN
+#      accumulators per thread. At the Apple/NVIDIA-tuned 8x8 that is 64, and IGC
+#      reported "compiled SIMD32 allocated 128 regs and spilled around 247".
+#   2. IGC BUILD FLAGS (MOJO_LZ_BUILD_FLAGS): PVC has a 256-GRF mode that IGC only
+#      uses when asked. Through G5 we passed an empty pBuildFlags string, so every
+#      kernel so far ran in half the register file.
+#
+# The `base` geometry is a control: it compiles to a kernel instruction-for-instruction
+# identical to MOJO_CURRICULUM/03c_matmul_coarse.mojo (verified on the Mac), so the
+# base/default-flags cell must reproduce the G5 number of ~1,489 GFLOP/s. If it does
+# not, something else changed and the rest of the table is not trustworthy.
+#
+# Prerequisite: rebuild the runtime first, on uan-0007 (it now reads MOJO_LZ_BUILD_FLAGS):
+#     bash build_runtime.sh
+#
+# Submit from MOJO_WORK/AURORA/gpu:
+#     qsub matmul_sweep.pbs
+#     qsub -v G6_TAGS="base t4x4" matmul_sweep.pbs          # a subset of geometries
+#     qsub -v G6_FLAGSETS="default" matmul_sweep.pbs        # skip the large-GRF half
+# Output: mojo_g6_sweep.o<jobid>. No inline comments after #PBS values.
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+
+# Modular's own max/kernels/src/layout/tensor_engine.mojo calls stdlib APIs that the
+# stdlib in the same repo has deprecated, producing ~600 warnings (~6 lines each) per
+# compile and burying real output. Not our code and not ours to fix in a fork we rebase.
+# These five names are exactly what it trips; every OTHER warning, including any from our
+# own sources, still prints. Verified on the Mac: the emitted SPIR-V is byte-identical
+# with and without them.
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
+
+# Flag sets, name:flags. "default" is what G1-G5 ran with.
+FLAGSETS=${G6_FLAGSETS:-"default largegrf"}
+flags_for() {
+    case "$1" in
+        default)  echo "" ;;
+        largegrf) echo "-ze-opt-large-register-file" ;;
+        optlevel) echo "-ze-opt-level=2" ;;
+        both)     echo "-ze-opt-large-register-file -ze-opt-level=2" ;;
+        *)        echo "" ;;
+    esac
+}
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+# Surface IGC's register/spill report, which is the whole point of the sweep.
+export MOJO_LZ_BUILD_LOG=1
+# Free extra evidence: these eight geometries span 27,912 to 121,372 bytes of SPIR-V,
+# so the per-launch cache-key cost can be read against module size across 4.3x without
+# a separate run. See launch_overhead.pbs for the dedicated measurement.
+export MOJO_LZ_PROFILE=1
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+sycl-ls 2>&1 | grep level_zero
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+
+# Guard: an old runtime ignores MOJO_LZ_BUILD_FLAGS and the large-GRF half of the sweep
+# would silently duplicate the default half.
+if strings "$RTLIB/libmojo_level_zero_rt.so" | grep -q MOJO_LZ_BUILD_FLAGS; then
+    echo "== runtime supports MOJO_LZ_BUILD_FLAGS"
+else
+    echo "ERROR: $RTLIB/libmojo_level_zero_rt.so predates the build-flag patch."
+    echo "       Run 'bash build_runtime.sh' on uan-0007 and resubmit."
+    exit 1
+fi
+
+cd "$G" || { echo "error: $G missing"; exit 1; }
+TAGS=${G6_TAGS:-$(grep -vE '^\s*(#|$)' matmul_sweep_configs.txt | awk '{print $1}')}
+
+for fset in $FLAGSETS; do
+    export MOJO_LZ_BUILD_FLAGS="$(flags_for "$fset")"
+    for tag in $TAGS; do
+        line=$(grep -E "^${tag}[[:space:]]" matmul_sweep_configs.txt)
+        [ -n "$line" ] || { echo "!! no config named '$tag' in matmul_sweep_configs.txt"; continue; }
+        set -- $line
+        bm=$2; bn=$3; bk=$4; tm=$5; tn=$6
+        echo
+        echo "################ $tag  flags='${MOJO_LZ_BUILD_FLAGS}' ################"
+        bash set_matmul_geometry.sh "BM=$bm" "BN=$bn" "BK=$bk" "TM=$tm" "TN=$tn"
+        ( cd "$REPO" && ./bazelw run //Mojo:mojo -- run \
+            --target-accelerator intel-pvc $IGNORE_DEPRECATED \
+            -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+            -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+            "$G/matmul_tunable.mojo" ) 2>&1 | grep -v "^\[[0-9,]* / [0-9,]*\]"
+        echo "== $tag/$fset exit ${PIPESTATUS[0]}"
+    done
+done
+
+bash set_matmul_geometry.sh BM=128 BN=128 BK=8 TM=8 TN=8
+echo
+echo "== yardstick: oneMKL on this tile is 21,148 GFLOP/s; G5 coarse via DeviceContext was 1,489"
+echo "== done $(date)"

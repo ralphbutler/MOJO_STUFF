@@ -1,0 +1,89 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:40:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g6_stencil
+#PBS -j oe
+
+# G6 — the stencil benchmark: code shaped like what scientists actually write.
+#
+# Every number we had was vector add, matmul or a tiny MLP -- trivial or GEMM-shaped.
+# "36.6% of oneMKL" invites the fatal reply that nobody writes their own SGEMM. A 5-point
+# Jacobi stencil is memory-bound, has no vendor library to call, and is the shape of a
+# large share of real HPC kernels. It carries its own yardstick: the same run measures a
+# streaming copy on the same tile, which is the achievable-bandwidth ceiling, and reports
+# the stencil as a percentage of it. No outside claim needed.
+#
+# Correctness is exact, not a tolerance: the field is linear, hence a fixed point of the
+# 5-point average, and every value is a multiple of 0.25 below 2^23 so float32 is exact.
+# Expect 0 wrong out of 8,388,608 (both buffers checked).
+#
+# Also run under the 256-GRF flag, because that is the open question from the sweep: it
+# won the matmul 3x but cost two low-register geometries 12% and 40%. A stencil holds
+# almost nothing in registers, so this is the case where it should hurt -- and if it does,
+# that settles the advice we give colleagues.
+#
+# PORTABILITY IS THE ARGUMENT. stencil.mojo is plain Mojo with no Intel in it. The same
+# file runs on Polaris and on an Apple GPU with STOCK Mojo, unmodified. Running it on all
+# three and putting the rows side by side is the evidence, not the Aurora number alone.
+#
+# Submit from MOJO_WORK/AURORA/gpu:  qsub stencil.pbs
+# Output: mojo_g6_stencil.o<jobid>. No inline comments after #PBS values.
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+
+REPEATS=${G6_REPEATS:-3}
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+cd "$G" || { echo "error: $G missing"; exit 1; }
+
+for fset in default largegrf; do
+    case "$fset" in
+        largegrf) export MOJO_LZ_BUILD_FLAGS="-ze-opt-large-register-file" ;;
+        *)        export MOJO_LZ_BUILD_FLAGS="" ;;
+    esac
+    echo
+    echo "############################################################"
+    echo "## stencil / $fset — $REPEATS repeats"
+    echo "############################################################"
+    for i in $(seq 1 "$REPEATS"); do
+        echo "-------- repeat $i --------"
+        ( cd "$REPO" && ./bazelw run //Mojo:mojo -- run \
+            --target-accelerator intel-pvc $IGNORE_DEPRECATED \
+            -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+            -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+            "$G/stencil.mojo" ) 2>&1 \
+          | grep -vE "^(INFO|Loading|Analyzing|Computing|Target|  bazel-bin|Aspect|WARNING)" \
+          | grep -v "^\[[0-9,]* / [0-9,]*\]" | grep -vE "^\s*$"
+    done
+done
+export MOJO_LZ_BUILD_FLAGS=""
+
+echo
+echo "== READ:"
+echo "==  check must be 0 wrong out of 8,388,608 in every run."
+echo "==  'stencil / copy' is the honest efficiency number: how close a hand-written"
+echo "==  memory-bound kernel gets to what the hardware can stream. No vendor library"
+echo "==  exists for this, which is the point."
+echo "==  If largegrf HURTS here, the advice becomes 'enable it when IGC reports a spill',"
+echo "==  not 'enable it'. A stencil holds almost nothing in registers."
+echo "==  NEXT: run the SAME FILE on Polaris and on the Mac with stock Mojo. Three rows"
+echo "==  from one unmodified source is the portability argument."
+echo "== done $(date)"

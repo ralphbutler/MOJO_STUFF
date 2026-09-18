@@ -24,7 +24,7 @@ FILES=()
 while IFS= read -r f; do FILES+=("$f"); done < <(
     ls pure_port/*.mojo pure_port/*.sh pure_port/*.pbs pure_port/*.cpp pure_port/*.py \
        pure_port/README.md pure_port/*.spv pure_port/*.spv.name pure_port/*.spv.args \
-       pure_port/*.tar.gz 2>/dev/null
+       pure_port/*.tar.gz pure_port/*.txt 2>/dev/null
     find pure_port/mojo_intel_gpu -name '*.mojo' -o -name 'LICENSE' 2>/dev/null
     find pure_port/runtime pure_port/backend -type f 2>/dev/null
 )

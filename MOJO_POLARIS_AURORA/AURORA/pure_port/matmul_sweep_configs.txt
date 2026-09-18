@@ -1,0 +1,9 @@
+# tag         BM   BN   BK  TM  TN    threads  acc/thread   note
+base         128  128    8   8   8
+t8x8_bk16    128  128   16   8   8
+t8x4         128   64    8   8   4
+t4x8          64  128    8   4   8
+t4x4          64   64    8   4   4
+t4x4_bk16     64   64   16   4   4
+t4x4_big     128  128    8   4   4
+t2x2          32   32    8   2   2

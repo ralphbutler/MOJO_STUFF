@@ -234,7 +234,7 @@ open-source compiler and our Level Zero `DeviceContext` runtime. Caveats in `AUR
         0/260, 1,856 GFLOP/s** (Metal route 1,903).
       - [x] Step 3 (rest) — ✅ **04b PASS (job 8829859): forward check 0 wrong, loss curve identical to G4
         at every printed epoch, 0.370 ms/epoch.** Step 3 closed: 02, 03c, 04b kernels all via our backend.
-      - [ ] ▶️ Step 4 — whole programs. Decided (Ralph): runtime = C++ Level Zero implementation of the needed
+      - [x] Step 4 — whole programs. ✅ DONE 2026-09-16 (source parity). Decided (Ralph): runtime = C++ Level Zero implementation of the needed
         `AsyncRT_*` subset; fork built on a `next-eval` node; stdlib target entry on the Mac meanwhile.
         - [x] 4a fork on Aurora ✅ **job 8829889: built in 51 min, hello runs, `intel-pvc` listed, and the
           Aurora-built `g5_vecadd.spv` is byte-identical to the Mac's.** (Rebuild pending for the 4b patches.)
@@ -249,13 +249,75 @@ open-source compiler and our Level Zero `DeviceContext` runtime. Caveats in `AUR
           `enqueue_function` reloads the kernel each call → compiled-kernel cache added.
           ✅ **Run 2: PASS at harness speed — 0.0403 ms/pass, 1,489 GFLOP/s, 0.354 ms/epoch** (04b beats
           our own harness). **Source parity (level B) reached.**
-      - [ ] Step 5 — done = 02, 03c, 04b unmodified via `DeviceContext`.
+      - [x] Step 5 — ✅ DONE: 02, 03c and 04b run unmodified via `DeviceContext`, both `mojo run` (2026-09-16) and `mojo build` (job 8836303, 2026-09-17).
       Original brief:
       In a fork of the OSS compiler: `TargetTraits` / `TargetLowering` / `TargetBackend`
       for `spirv64` (map `global_idx` etc. to SPIR-V built-ins, `spir_kernel` entry points,
       address spaces), an `IntelPlugin` for `std/_plugin`, and a Level Zero runtime exposing the
       `max.gpu.host.DeviceContext` API with in-order streams. Pass = `MOJO_CURRICULUM`
       `02_vecadd_gpu`, `03c` and `04b` run **unmodified** on PVC, host code and all.
+- [x] ✅ **G6 — PVC performance — COMPLETE** (2026-09-17/18). Headline: matmul **7,782 ± 28 GFLOP/s**, ×5.26, 36.8% of oneMKL, 86.8% of the same kernel on an A100; stencil **631 GB/s** on Aurora and ~666 on a Mac, exact on 8,388,608 cells; both compilation paths proven. Write-up: `ASSESSMENT.md` (3 pp). Two
+      independent levers, and only the second is about kernels:
+      - [x] **Runtime/IGC build flags.** `pBuildFlags` was `""` through all of G1–G5, so IGC ran at
+        its default 128 GRF while PVC also offers 256 — against a kernel it said "spilled around
+        247". Now driven by `MOJO_LZ_BUILD_FLAGS`, with `MOJO_LZ_BUILD_LOG=1` surfacing IGC's
+        register/spill report. **Helps every Mojo kernel on our path, including users who never
+        tune.** Needs `g5_build_runtime.sh` rerun on uan-0007.
+      - [x] **Kernel geometry harness.** `g5_matmul_pvc.mojo` (curriculum 03c, geometry as
+        rewritable literals; `MOJO_CURRICULUM` untouched). Baseline geometry verified
+        **instruction-identical to 03c**, so it is a true control. All eight geometries compile and
+        pass `spirv-val` on the Mac (`g6_sweep_check.sh`) — no queue time spent on invalid configs.
+        Note: `-D` defines were tried first and rejected — identical SPIR-V, but the mangled kernel
+        name doubled to 9,747 chars against a 3,889-char proven ceiling.
+      - [x] **Sweep run — job 8836109, 2026-09-17.** All 16 cells exact (0 / 4,194,304). Control
+        held: `base`/`default` = 1,452 vs G5's 1,489. **Best: 7,737 GFLOP/s = 36.6% of oneMKL,
+        ×5.2 on what we shipped and announced (1,489 / 7.0%).** Geometry alone ×4.64, flag alone
+        ×3.04, together ×5.33 — they relieve the same constraint so they do not multiply. Spill
+        warnings track the default column exactly and vanish under large GRF.
+        **Correction to a recorded prediction:** large GRF is NOT free for everyone — it costs
+        `t2x2` 40% and `t4x4_big` 12%, because 256-GRF halves threads per EU. Rule: enable it when
+        IGC reports a spill, not by default.
+      - [x] **Host-side launch overhead — in scope** (Ralph, 2026-09-17). Suspect found by reading
+        the path: `loadFunction` runs once per LAUNCH and builds a cache key holding the whole
+        SPIR-V module (~91 KB for matmul), then hashes it. Runtime now instrumented
+        (`MOJO_LZ_PROFILE=1`); `g6_launch_overhead.mojo` + `g6_launch.pbs` compare a 3,900-byte
+        module against an 86,312-byte one. Mac-side syntax checking for the runtime added
+        (`g5_ze_stub/`, `g5_syntax_check.sh`).
+      - [x] **`g6_launch.pbs` (job 8836110)** — host cost flat at ~3.7 µs/launch regardless of grid;
+        256 and 4,096 workgroups both cost 38 µs, so the cost is device-side. Cache-key theory:
+        mechanism confirmed (~29 ns/KB) but only ~2.4 µs/launch — not the main event.
+      - [x] **`g6_ordering.pbs` (job 8836165) — the answer.** `none` collapses 38 → 2.8 µs, but
+        `inorder` matches `barrier` (37.7 vs 38.3). So the 38 µs is **kernel completion latency
+        exposed by in-order execution**, which is the semantics `DeviceContext` guarantees — not
+        barrier overhead and not fixable in our runtime. The 40.3-vs-6.3 comparison against our old
+        harness was never apples to apples (the harness did not order). `inorder` does cut host
+        enqueue 3.41 → 2.31 µs. 04b unaffected: 0.356 vs 0.367 ms/epoch. `none` proves ordering is
+        essential — 279 lost updates, and 04b takes a **GPU page fault**, not just wrong numbers.
+      - [x] **Default decided: `barrier`** (job 8836259). `inorder` is 5.4% slower on 04b and every one
+        of its runs is slower than every `barrier` run. Cheaper on the host, but it does not survive to
+        end-to-end time. `MOJO_LZ_ORDERING` stays available for experiments.
+      - [x] **Confirmation runs (job 8836259) + stencil (job 8836260).** Headline **7,782 ± 28 GFLOP/s,
+        ×5.26, 36.8% of oneMKL, 86.8% of the same kernel on an A100**; within-job spread 0.03–0.35%,
+        node-to-node ~2.5% (quote the wider one). **Large-GRF settled: NOT default** — it costs a
+        memory-bound kernel a third of its bandwidth (copy 708 → 459 GB/s, stencil 631 → 420) and 04b
+        3.2%, while winning matmul ×2.98. **Stencil reaches 89.1% of achievable streaming bandwidth**,
+        exact on all 8,388,608 cells — the evidence for "when you must write a kernel, do you get good
+        use of the hardware".
+      - [x] **Ahead-of-time `mojo build` — PASSES (job 8836303).** Job 8836261 built all three but died
+        on `libKGENCompilerRTShared.so` (Mojo's own compiler runtime, found by `mojo run` via Bazel
+        runfiles, absent for a standalone binary). Fixed with `LD_LIBRARY_PATH` + a second
+        `-Xlinker -rpath` for `$REPO/bazel-bin/Mojo`. Rerun: **02 0/1,000,000 · 03c C[0,0]=4096.0 at
+        1,462.3 GFLOP/s · 04b loss curve exact, 0.358 ms/epoch.** AOT vs JIT matmul −1.2%, inside the
+        ±2.5% node band — same backend, same kernel, same speed. **Both paths now proven.**
+      - [x] Fixed a silent-failure trap the rerun exposed: Bazel outputs are read-only, so the `cp` of
+        `max`/`layout` into `$OUT/pkgs` failed and the build **silently used the previous run's stale
+        packages**. Now removes first, chmods, and exits on failure.
+      - [ ] Follow-up: a **vectorised** copy kernel, to find the real bandwidth ceiling. Our 708 GB/s
+        ceiling is itself unvectorised scalar code, so "89% of achievable" is 89% of a simple copy,
+        not of hardware peak.
+      - [x] ✅ **Named in `ASSESSMENT.md`** ("What we learned about Mojo itself"): `DeviceContext` has no way to express
+        "these launches are independent, overlap them". CUDA streams and Level Zero queues do; Mojo's
+        API does not. That limits large-independent-kernel programs on **any** backend, not just ours.
 - [ ] **(later) Multi-tile / multi-GPU** — 12 tiles per node; Polaris never went past one A100.
 
 ## ⚠️ Phase 2 risks

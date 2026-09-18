@@ -1,0 +1,136 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=01:30:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g6_pub
+#PBS -j oe
+
+# G6 — everything still needed before any of tonight's numbers can be published.
+# Every G6 result so far is a SINGLE RUN. Nothing goes in a document on one run.
+#
+# A. ERROR BARS — 3 repeats of the four cells the write-up will quote:
+#      base/default      control, must sit near 1,489 GFLOP/s
+#      base/largegrf     the flag alone            (~4,412)
+#      t4x4/default      geometry alone            (~6,740)
+#      t4x4_bk16/largegrf  the headline            (~7,737)
+#
+# B. DOES THE FLAG HELP REAL PROGRAMS? The 256-GRF flag is a 3x win on the matmul but
+#    COST two of eight sweep geometries 12% and 40%, because it halves the threads
+#    resident per execution unit. We have only ever tried it on matmul geometries. This
+#    runs the three real curriculum programs both ways. It decides whether we tell
+#    colleagues "turn this on" or "turn this on when IGC reports a spill" -- and 02/04b
+#    are the programs most like the code they actually write.
+#
+# C. ORDERING DEFAULT. barrier vs inorder differed by 3% on 04b with one run each --
+#    not enough to move the default. 3 repeats of each settles it.
+#
+# Prerequisite: the runtime already rebuilt for MOJO_LZ_ORDERING (job 8836165 used it).
+# Submit from MOJO_WORK/AURORA/gpu:  qsub confirm_runs.pbs
+# Pair with the still-untested ahead-of-time path, which shares the Bazel workspace:
+#     JOB=$(qsub confirm_runs.pbs); qsub -W depend=afterany:$JOB e2e_aot.pbs
+# Output: mojo_g6_pub.o<jobid>. No inline comments after #PBS values.
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+
+# These are Modular's own deprecations in
+# max/kernels/src/layout/tensor_engine.mojo. Every other warning still prints.
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+
+REPEATS=${G6_REPEATS:-3}
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+for sym in MOJO_LZ_BUILD_FLAGS MOJO_LZ_ORDERING MOJO_LZ_PROFILE; do
+    strings "$RTLIB/libmojo_level_zero_rt.so" | grep -q $sym || {
+        echo "ERROR: runtime lacks $sym. Run 'bash build_runtime.sh' on uan-0007."; exit 1; }
+done
+echo "== runtime OK"
+
+run_mojo() {   # run_mojo <file>
+    ( cd "$REPO" && ./bazelw run //Mojo:mojo -- run \
+        --target-accelerator intel-pvc $IGNORE_DEPRECATED \
+        -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+        -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+        "$1" ) 2>&1 | grep -vE "^(INFO|Loading|Analyzing|Computing|Target|  bazel-bin|Aspect|WARNING)" \
+                   | grep -v "^\[[0-9,]* / [0-9,]*\]"
+}
+
+cd "$G" || { echo "error: $G missing"; exit 1; }
+
+echo
+echo "############################################################"
+echo "## A. ERROR BARS — $REPEATS repeats each, GFLOP/s"
+echo "############################################################"
+# tag:BM:BN:BK:TM:TN:flagset
+for spec in base:128:128:8:8:8:default \
+            base:128:128:8:8:8:largegrf \
+            t4x4:64:64:8:4:4:default \
+            t4x4_bk16:64:64:16:4:4:largegrf ; do
+    IFS=: read -r tag bm bn bk tm tn fset <<< "$spec"
+    case "$fset" in
+        largegrf) export MOJO_LZ_BUILD_FLAGS="-ze-opt-large-register-file" ;;
+        *)        export MOJO_LZ_BUILD_FLAGS="" ;;
+    esac
+    echo
+    echo "======== $tag / $fset ========"
+    bash set_matmul_geometry.sh "BM=$bm" "BN=$bn" "BK=$bk" "TM=$tm" "TN=$tn" >/dev/null || exit 1
+    for i in $(seq 1 "$REPEATS"); do
+        echo "-------- repeat $i --------"
+        run_mojo "$G/matmul_tunable.mojo" | grep -E "RESULT|check|avg time|perf"
+    done
+done
+bash set_matmul_geometry.sh BM=128 BN=128 BK=8 TM=8 TN=8 >/dev/null
+
+echo
+echo "############################################################"
+echo "## B. DOES THE 256-GRF FLAG HELP REAL PROGRAMS?"
+echo "############################################################"
+for fset in default largegrf; do
+    case "$fset" in
+        largegrf) export MOJO_LZ_BUILD_FLAGS="-ze-opt-large-register-file" ;;
+        *)        export MOJO_LZ_BUILD_FLAGS="" ;;
+    esac
+    for prog in 02_vecadd_gpu 03c_matmul_coarse 04b_train_mlp_gpu; do
+        echo
+        echo "======== $prog / $fset ========"
+        run_mojo "$G/curriculum/$prog.mojo" | grep -vE "^\s*$"
+    done
+done
+export MOJO_LZ_BUILD_FLAGS=""
+
+echo
+echo "############################################################"
+echo "## C. ORDERING DEFAULT — 04b, $REPEATS repeats each"
+echo "############################################################"
+for mode in barrier inorder; do
+    export MOJO_LZ_ORDERING=$mode
+    echo
+    echo "======== 04b / $mode ========"
+    for i in $(seq 1 "$REPEATS"); do
+        run_mojo "$G/curriculum/04b_train_mlp_gpu.mojo" | grep -E "train time|final loss"
+    done
+done
+unset MOJO_LZ_ORDERING
+
+echo
+echo "== READ:"
+echo "==  A. spread across repeats -> the +/- we can publish. Control must stay near 1,489."
+echo "==  B. if largegrf helps 02 and 04b too -> 'turn it on'. If it hurts either ->"
+echo "==     'turn it on when IGC reports a spill', and say so in the write-up."
+echo "==  C. if barrier and inorder overlap within spread -> keep barrier, it is proven."
+echo "== 04b reference: 2.1783555 -> 0.0005614754 every printed epoch, ~0.354-0.370 ms/epoch."
+echo "== done $(date)"

@@ -1,0 +1,90 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:30:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g6_launch
+#PBS -j oe
+
+# G6 — host-side launch overhead. The half of the performance question that matters to
+# people who never write a kernel.
+#
+# Measured in G5 on this tile, same kernels either way:
+#     02 vecadd   0.0403 ms/pass via DeviceContext  vs  0.0063 via our own LZ harness
+#     03c matmul  11.54 ms/pass                     vs  9.26
+#
+# HYPOTHESIS to test: `enqueue_function` builds a fresh DeviceFunction per call, so
+# AsyncRT_DeviceContext_loadFunction runs once per LAUNCH, and its first act is to build
+# a cache key containing the whole SPIR-V module and hash it. If that is the cost, it
+# scales with MODULE SIZE, not with grid size or problem size.
+#
+# The two programs here span 22x in module size with near-identical launch semantics:
+#     launch_overhead.mojo  bump_kernel   3,900 bytes
+#     matmul_tunable.mojo       matmul_pvc   86,312 bytes (baseline geometry)
+# MOJO_LZ_PROFILE=1 makes the runtime report key-build / lookup / argument-encoding
+# microseconds per call, so the answer is read off directly rather than inferred.
+#
+# Prerequisite: bash build_runtime.sh on uan-0007 (profiling is new).
+# Submit from MOJO_WORK/AURORA/gpu:   qsub launch_overhead.pbs
+# Output: mojo_g6_launch.o<jobid>. No inline comments after #PBS values.
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+
+# Modular's own max/kernels/src/layout/tensor_engine.mojo calls stdlib APIs that the
+# stdlib in the same repo has deprecated, producing ~600 warnings (~6 lines each) per
+# compile and burying real output. Not our code and not ours to fix in a fork we rebase.
+# These five names are exactly what it trips; every OTHER warning, including any from our
+# own sources, still prints. Verified on the Mac: the emitted SPIR-V is byte-identical
+# with and without them.
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+export MOJO_LZ_PROFILE=1
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+if strings "$RTLIB/libmojo_level_zero_rt.so" | grep -q MOJO_LZ_PROFILE; then
+    echo "== runtime supports MOJO_LZ_PROFILE"
+else
+    echo "ERROR: runtime predates the profiling patch."
+    echo "       Run 'bash build_runtime.sh' on uan-0007 and resubmit."
+    exit 1
+fi
+
+run_one() {
+    echo
+    echo "################ $1 ################"
+    ( cd "$REPO" && ./bazelw run //Mojo:mojo -- run \
+        --target-accelerator intel-pvc $IGNORE_DEPRECATED \
+        -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+        -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+        "$G/$1" ) 2>&1 | grep -v "^\[[0-9,]* / [0-9,]*\]"
+    echo "== $1 exit ${PIPESTATUS[0]}"
+}
+
+cd "$G" || { echo "error: $G missing"; exit 1; }
+
+# Small module (3,900 bytes): the per-launch floor.
+run_one launch_overhead.mojo
+
+# Large module (86,312 bytes), baseline geometry = curriculum 03c. Same runtime path,
+# 22x the module. If the key build dominates, its profile line differs by about that.
+bash set_matmul_geometry.sh BM=128 BN=128 BK=8 TM=8 TN=8
+run_one matmul_tunable.mojo
+
+echo
+echo "== READ THIS FIRST: compare 'cache-key build' us/call between the two programs."
+echo "== ~22x apart  -> the per-launch cost is hashing the SPIR-V module; fix is a cheap cache key."
+echo "== ~equal      -> the cost is elsewhere (arg encoding, handle setup); profile says where."
+echo "== done $(date)"

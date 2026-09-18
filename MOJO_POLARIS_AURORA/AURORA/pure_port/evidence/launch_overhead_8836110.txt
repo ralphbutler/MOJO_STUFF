@@ -1,0 +1,881 @@
+== job 8836110.aurora-pbs-0001.hostmgmt.cm.aurora.alcf.anl.gov on x4007c6s4b0n0 at Fri Sep 18 12:51:35 AM UTC 2026
+-rwxr-xr-x 1 rbutler ModCon 62584 Sep 18 00:35 /lus/flare/projects/ModCon/rbutler/MOJO_WORK/runtime/lib/libmojo_level_zero_rt.so
+== runtime supports MOJO_LZ_PROFILE
+
+################ g6_launch_overhead.mojo ################
+grep: warning: stray \ before =
+grep: warning: stray \ before =
+Starting local Bazel server (10.0.0-pre-46c5e789f84c7bf4ba1edb105eefa7bc4ebc841b) and connecting to it...
+INFO: Invocation ID: 04f3f49d-7507-4635-aca2-add4a1df37ac
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Loading: 
+Loading: 8 packages loaded
+Analyzing: target //Mojo:mojo (13 packages loaded)
+Analyzing: target //Mojo:mojo (13 packages loaded, 6 targets configured)
+Analyzing: target //Mojo:mojo (13 packages loaded, 7 targets configured)
+
+Analyzing: target //Mojo:mojo (97 packages loaded, 21 targets configured)
+
+Analyzing: target //Mojo:mojo (192 packages loaded, 14,707 targets configured)
+
+Analyzing: target //Mojo:mojo (278 packages loaded, 27,106 targets configured)
+
+Analyzing: target //Mojo:mojo (289 packages loaded, 38,700 targets configured, 8 aspect applications)
+Analyzing: target //Mojo:mojo (290 packages loaded, 38,703 targets configured, 8 aspect applications)
+Analyzing: target //Mojo:mojo (303 packages loaded, 38,742 targets configured, 8 aspect applications)
+Analyzing: target //Mojo:mojo (316 packages loaded, 42,355 targets configured, 1059 aspect applications)
+INFO: Analyzed target //Mojo:mojo (316 packages loaded, 42,355 targets configured, 1059 aspect applications).
+INFO: Found 1 target...
+Target //Mojo/tools/mojo:mojo-full up-to-date:
+  bazel-bin/Mojo/tools/mojo/mojo-full
+Aspect //bazel/pip:mypy.bzl%mypy_aspect of //Mojo:mojo up-to-date (nothing to build)
+INFO: Elapsed time: 37.078s, Critical Path: 6.76s
+INFO: 1 process: 11,323 action cache hit, 1 internal.
+INFO: Build completed successfully, 1 total action
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2048:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]()
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2112:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2112:48: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1457:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2150:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2150:48: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1599:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2177:16: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~^~~~~~~~
+                unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2177:41: warning: 'store' is deprecated, use 'unsafe_store' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                         unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1820:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2206:16: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~^~~~~~~~
+                unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2206:41: warning: 'store' is deprecated, use 'unsafe_store' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                         unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2270:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[offset_dtype]]() + offset_coord[0].value()
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2270:53: warning: '__add__' is deprecated, use 'unsafe_offset' instead
+            storage.bitcast[Scalar[offset_dtype]]() + offset_coord[0].value()
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:720:9: note: '__add__' declared here
+    def __add__[I: Indexer, //](self, offset: I) -> Self:
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2271:10: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        ).bitcast[SIMD[offset_dtype, Self.element_width]]()
+~~~~~~~~~^~~~~~~~
+          unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3766:42: warning: 'address_space_cast' is deprecated, use 'unsafe_address_space_cast' instead
+                _device_leaf_ptr(storage).address_space_cast[address_space]()
+                ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+                                          unsafe_address_space_cast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2358:9: note: 'address_space_cast' declared here
+    def address_space_cast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3770:37: warning: 'address_space_cast' is deprecated, use 'unsafe_address_space_cast' instead
+                storage.unsafe_ptr().address_space_cast[address_space]()
+                ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+                                     unsafe_address_space_cast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2358:9: note: 'address_space_cast' declared here
+    def address_space_cast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3807:37: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        result = Pointer(to=storage).bitcast[type_of(result)]()[]
+                 ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                     unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3839:41: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return _device_leaf_ptr(storage).load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                         unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1457:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3880:41: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return _device_leaf_ptr(storage).load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                         unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1599:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3910:34: warning: 'store' is deprecated, use 'unsafe_store' instead
+        _device_leaf_ptr(storage).store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                  unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1820:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3942:34: warning: 'store' is deprecated, use 'unsafe_store' instead
+        _device_leaf_ptr(storage).store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                  unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4001:42: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            var leaf = Pointer(to=result).bitcast[
+                       ~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                          unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4004:29: warning: '__add__' is deprecated, use 'unsafe_offset' instead
+            leaf[] = leaf[] + offset_coord[0].value()
+                     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:720:9: note: '__add__' declared here
+    def __add__[I: Indexer, //](self, offset: I) -> Self:
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3645:35: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return Pointer(to=storage).bitcast[
+               ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                   unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2880:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2883:28: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~^~~~~~~~
+                            unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2883:53: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                     unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2880:45: warning: 'store' is deprecated, use 'unsafe_store' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                             unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4644:46: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    _device_leaf_ptr(storage).load[width=Self.element_width](
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                              unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4641:38: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                      unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:5362:42: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(dst_storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                          unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2766:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2769:28: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~^~~~~~~~
+                            unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2769:53: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                     unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2766:45: warning: 'store' is deprecated, use 'unsafe_store' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                             unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4525:46: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    _device_leaf_ptr(storage).load[width=Self.element_width](
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                              unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:28:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4522:38: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                      unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g6_launch_overhead.mojo:23:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+--- G6 launch overhead: one trivial kernel, 2000 launches per row ---
+  buffer: 1048576 float32; block_dim 256
+
+  floor    : 1 blocks (256 threads) -> 3.9053865 us/launch
+  small    : 16 blocks (4096 threads) -> 12.275421 us/launch
+  medium   : 256 blocks (65536 threads) -> 38.188669999999995 us/launch
+  full     : 4096 blocks (1048576 threads) -> 38.373087 us/launch
+
+  Reference points on this tile, same 1M-element vecadd:
+    DeviceContext (G5 run 2)      : 40.3 us/pass
+    our Level Zero harness (G5 s3):  6.3 us/pass
+  The floor row is what a program pays per launch before any GPU work.
+  Set MOJO_LZ_PROFILE=1 for the runtime's own per-launch breakdown.
+  buf[0] after all launches: 8004.0
+
+[mojo-lz] per-launch host cost (MOJO_LZ_PROFILE)
+  loadFunction calls : 8004
+    total            :     3.13 us/call
+    cache-key build  :     0.27 us/call  (5235 bytes copied per call)
+    cache lookup     :     0.09 us/call
+    module build     :     2.77 us/call  (1 misses = IGC compiles)
+  enqueueFunction calls: 8004
+    total            :     3.36 us/call
+    argument encoding:     0.24 us/call
+  NOTE: loadFunction runs once per LAUNCH, not once per kernel --
+        DeviceContext builds a fresh DeviceFunction on every call.
+== g6_launch_overhead.mojo exit 0
+== geometry now:
+    comptime N = 2048                              # matrix is N x N
+    comptime BM = 128                              # block output tile rows
+    comptime BN = 128                              # block output tile cols
+    comptime BK = 8                                # K-slab depth staged in shared memory
+    comptime TM = 8                                # per-thread micro-tile rows
+    comptime TN = 8                                # per-thread micro-tile cols
+    comptime ITERS = 50
+
+################ g5_matmul_pvc.mojo ################
+grep: warning: stray \ before =
+grep: warning: stray \ before =
+INFO: Invocation ID: 73bfc943-c7a2-4ba1-9189-d93f3d3a31e4
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //Mojo:mojo (0 packages loaded, 0 targets configured)
+Analyzing: target //Mojo:mojo (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //Mojo:mojo (0 packages loaded, 0 targets configured).
+INFO: Found 1 target...
+Target //Mojo/tools/mojo:mojo-full up-to-date:
+  bazel-bin/Mojo/tools/mojo/mojo-full
+Aspect //bazel/pip:mypy.bzl%mypy_aspect of //Mojo:mojo up-to-date (nothing to build)
+INFO: Elapsed time: 1.311s, Critical Path: 0.03s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2048:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]()
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2112:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2112:48: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1457:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2150:23: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~^~~~~~~~
+                       unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2150:48: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return storage.bitcast[Scalar[dtype]]().load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1599:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2177:16: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~^~~~~~~~
+                unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2177:41: warning: 'store' is deprecated, use 'unsafe_store' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                         unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1820:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2206:16: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~^~~~~~~~
+                unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2206:41: warning: 'store' is deprecated, use 'unsafe_store' instead
+        storage.bitcast[Scalar[dtype]]().store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                         unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2270:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[offset_dtype]]() + offset_coord[0].value()
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2270:53: warning: '__add__' is deprecated, use 'unsafe_offset' instead
+            storage.bitcast[Scalar[offset_dtype]]() + offset_coord[0].value()
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:720:9: note: '__add__' declared here
+    def __add__[I: Indexer, //](self, offset: I) -> Self:
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2271:10: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        ).bitcast[SIMD[offset_dtype, Self.element_width]]()
+~~~~~~~~~^~~~~~~~
+          unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3766:42: warning: 'address_space_cast' is deprecated, use 'unsafe_address_space_cast' instead
+                _device_leaf_ptr(storage).address_space_cast[address_space]()
+                ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+                                          unsafe_address_space_cast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2358:9: note: 'address_space_cast' declared here
+    def address_space_cast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3770:37: warning: 'address_space_cast' is deprecated, use 'unsafe_address_space_cast' instead
+                storage.unsafe_ptr().address_space_cast[address_space]()
+                ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+                                     unsafe_address_space_cast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2358:9: note: 'address_space_cast' declared here
+    def address_space_cast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3807:37: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        result = Pointer(to=storage).bitcast[type_of(result)]()[]
+                 ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                     unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3839:41: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return _device_leaf_ptr(storage).load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                         unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1457:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3880:41: warning: 'load' is deprecated, use 'unsafe_load' instead
+        return _device_leaf_ptr(storage).load[
+               ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                         unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1599:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3910:34: warning: 'store' is deprecated, use 'unsafe_store' instead
+        _device_leaf_ptr(storage).store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                  unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1820:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3942:34: warning: 'store' is deprecated, use 'unsafe_store' instead
+        _device_leaf_ptr(storage).store[
+        ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                  unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4001:42: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            var leaf = Pointer(to=result).bitcast[
+                       ~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                          unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4004:29: warning: '__add__' is deprecated, use 'unsafe_offset' instead
+            leaf[] = leaf[] + offset_coord[0].value()
+                     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:720:9: note: '__add__' declared here
+    def __add__[I: Indexer, //](self, offset: I) -> Self:
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:3645:35: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+        return Pointer(to=storage).bitcast[
+               ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                                   unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2880:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2883:28: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~^~~~~~~~
+                            unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2883:53: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                     unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2880:45: warning: 'store' is deprecated, use 'unsafe_store' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                             unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4644:46: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    _device_leaf_ptr(storage).load[width=Self.element_width](
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                              unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4641:38: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                      unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:5362:42: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(dst_storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                          unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1795:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2766:20: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~^~~~~~~~
+                    unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2769:28: warning: 'bitcast' is deprecated, use 'unsafe_bitcast' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~^~~~~~~~
+                            unsafe_bitcast
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:2189:9: note: 'bitcast' declared here
+    def bitcast[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2769:53: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    storage.bitcast[Scalar[dtype]]().load[
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                                     unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:2766:45: warning: 'store' is deprecated, use 'unsafe_store' instead
+            storage.bitcast[Scalar[dtype]]().store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                             unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4525:46: warning: 'load' is deprecated, use 'unsafe_load' instead
+                    _device_leaf_ptr(storage).load[width=Self.element_width](
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+                                              unsafe_load
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1528:9: note: 'load' declared here
+    def load[
+        ^
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:31:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/__init__.mojo:53:
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tile_tensor.mojo:39:
+/lus/flare/projects/ModCon/rbutler/MOJO_WORK/modular/max/kernels/src/layout/tensor_engine.mojo:4522:38: warning: 'store' is deprecated, use 'unsafe_store' instead
+            _device_leaf_ptr(storage).store(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                                      unsafe_store
+Imported from /lus/flare/projects/ModCon/rbutler/MOJO_WORK/AURORA/gpu/g5_matmul_pvc.mojo:25:
+Mojo/stdlib/std/memory/pointer.mojo:1770:9: note: 'store' declared here
+    def store[
+        ^
+RESULT geometry BM=128 BN=128 BK=8 TM=8 TN=8
+  threads/block : 256  acc regs/thread: 64
+  N             : 2048
+  check         : 0 / 4194304 wrong ( 0 exact zeros )
+  avg time      : 11.54071754 ms
+  perf          : 1488.6309386270623 GFLOP/s
+
+[mojo-lz] per-launch host cost (MOJO_LZ_PROFILE)
+  loadFunction calls : 51
+    total            :  5585.26 us/call
+    cache-key build  :     2.70 us/call  (91172 bytes copied per call)
+    cache lookup     :     1.99 us/call
+    module build     :  5580.57 us/call  (1 misses = IGC compiles)
+  enqueueFunction calls: 51
+    total            :     5.25 us/call
+    argument encoding:     0.44 us/call
+  NOTE: loadFunction runs once per LAUNCH, not once per kernel --
+        DeviceContext builds a fresh DeviceFunction on every call.
+== g5_matmul_pvc.mojo exit 0
+
+== READ THIS FIRST: compare 'cache-key build' us/call between the two programs.
+== ~22x apart  -> the per-launch cost is hashing the SPIR-V module; fix is a cheap cache key.
+== ~equal      -> the cost is elsewhere (arg encoding, handle setup); profile says where.
+== done Fri Sep 18 12:52:30 AM UTC 2026

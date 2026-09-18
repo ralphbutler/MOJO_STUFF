@@ -32,6 +32,7 @@
 #include <level_zero/ze_api.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -69,6 +70,181 @@ const char *zeError(const char *what, ze_result_t result) {
     if (zeTryResult != ZE_RESULT_SUCCESS)                                      \
       return zeError(#expr, zeTryResult);                                      \
   } while (0)
+
+//===----------------------------------------------------------------------===//
+// IGC build options
+//
+// zeModuleCreate hands pBuildFlags straight to Intel's GPU compiler. We shipped
+// an empty string through G5, which leaves IGC on its defaults: 128 GRF and a
+// sub-group width of its own choosing. On PVC the curriculum's coarse matmul
+// holds 64 accumulators plus two 8-wide staging vectors per thread, and IGC
+// reported "compiled SIMD32 allocated 128 regs and spilled around 247" -- i.e.
+// it ran in half the register file the hardware has.
+//
+// Useful values for MOJO_LZ_BUILD_FLAGS:
+//   -ze-opt-large-register-file    256 GRF per thread instead of 128
+//   -ze-opt-level=2                IGC optimization level
+//   -ze-intel-256-GRF-per-thread   older spelling of the large-GRF switch
+// Sub-group width is a kernel property (SPIR-V SubgroupSize execution mode),
+// not a build flag, so it is swept from the kernel side instead.
+//
+// Read once: a process runs one configuration, which is what a sweep wants.
+//===----------------------------------------------------------------------===//
+
+const char *igcBuildFlags() {
+  static const char *flags = [] {
+    const char *env = std::getenv("MOJO_LZ_BUILD_FLAGS");
+    return env ? env : "";
+  }();
+  return flags;
+}
+
+//===----------------------------------------------------------------------===//
+// Launch ordering (MOJO_LZ_ORDERING)
+//
+// `DeviceContext` presents an in-order stream. A Level Zero IMMEDIATE command list
+// is not in-order by default, which is what silently corrupted G4 (dependent
+// kernels overlapped; missing writes, no wrong values). We fixed it the blunt way:
+// zeCommandListAppendBarrier after every launch.
+//
+// G6 job 8836110 measured what that costs. With a trivial kernel, per-launch time
+// went 3.9 us at 1 workgroup -> 38.2 us at 256 -> 38.4 us at 4096, while measured
+// HOST cost stayed flat at ~3.7 us. The rise is the barrier draining the device
+// after every kernel, and it is most of the 40.3-vs-6.3 us/pass vecadd gap against
+// our own harness (which launched independent kernels with no barrier at all).
+//
+// Level Zero can give the same ordering in the driver, without a full drain, via an
+// in-order command list. Modes:
+//   barrier  (default) - what G5 shipped; correct, conservative, slow
+//   inorder            - ZE_COMMAND_QUEUE_FLAG_IN_ORDER, no explicit barrier
+//   none               - DIAGNOSTIC ONLY. No ordering. Dependent kernels WILL read
+//                        stale data; 04b's loss curve is expected to go wrong. It
+//                        exists to prove the barrier is what costs the time.
+//===----------------------------------------------------------------------===//
+
+enum class Ordering { Barrier, InOrder, None };
+
+Ordering orderingMode() {
+  static const Ordering mode = [] {
+    const char *env = std::getenv("MOJO_LZ_ORDERING");
+    if (!env || !*env)
+      return Ordering::Barrier;
+    if (std::strcmp(env, "inorder") == 0)
+      return Ordering::InOrder;
+    if (std::strcmp(env, "none") == 0)
+      return Ordering::None;
+    if (std::strcmp(env, "barrier") != 0)
+      std::fprintf(stderr,
+                   "[mojo-lz] unknown MOJO_LZ_ORDERING='%s', using 'barrier'\n",
+                   env);
+    return Ordering::Barrier;
+  }();
+  return mode;
+}
+
+const char *orderingName() {
+  switch (orderingMode()) {
+  case Ordering::InOrder: return "inorder";
+  case Ordering::None:    return "none";
+  default:                return "barrier";
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Optional profiling (MOJO_LZ_PROFILE=1)
+//
+// `DeviceContext.enqueue_function` constructs a fresh DeviceFunction on every
+// call, so AsyncRT_DeviceContext_loadFunction runs once per launch, not once per
+// kernel. The compiled-kernel cache added in G5 removed the IGC recompile, but
+// the cache LOOKUP itself builds a key holding the whole SPIR-V module and hashes
+// it -- 86 KB for the coarse matmul, on every launch. This measures that instead
+// of assuming it, and splits the per-launch cost into key / lookup / build /
+// argument encoding. Off by default and behind one predicted branch when off.
+//===----------------------------------------------------------------------===//
+
+struct ProfileStats {
+  std::atomic<uint64_t> loadCalls{0}, loadNs{0}, keyNs{0}, lookupNs{0};
+  std::atomic<uint64_t> buildCalls{0}, buildNs{0}, keyBytes{0};
+  std::atomic<uint64_t> enqCalls{0}, enqNs{0}, argNs{0};
+};
+
+ProfileStats &profileStats() {
+  static ProfileStats stats;
+  return stats;
+}
+
+bool profileEnabled() {
+  static const bool on = [] {
+    const char *env = std::getenv("MOJO_LZ_PROFILE");
+    return env && *env && std::strcmp(env, "0") != 0;
+  }();
+  return on;
+}
+
+inline uint64_t nowNs() {
+  return static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
+}
+
+void profileReport() {
+  ProfileStats &p = profileStats();
+  uint64_t loads = p.loadCalls.load();
+  uint64_t enqs = p.enqCalls.load();
+  if (!loads && !enqs)
+    return;
+  auto us = [](uint64_t ns, uint64_t n) {
+    return n ? (double)ns / (double)n / 1000.0 : 0.0;
+  };
+  std::fprintf(stderr, "\n[mojo-lz] per-launch host cost (MOJO_LZ_PROFILE)\n");
+  std::fprintf(stderr, "  loadFunction calls : %llu\n",
+               (unsigned long long)loads);
+  std::fprintf(stderr, "    total            : %8.2f us/call\n",
+               us(p.loadNs.load(), loads));
+  std::fprintf(stderr, "    cache-key build  : %8.2f us/call  (%llu bytes copied per call)\n",
+               us(p.keyNs.load(), loads),
+               (unsigned long long)(loads ? p.keyBytes.load() / loads : 0));
+  std::fprintf(stderr, "    cache lookup     : %8.2f us/call\n",
+               us(p.lookupNs.load(), loads));
+  std::fprintf(stderr, "    module build     : %8.2f us/call  (%llu misses = IGC compiles)\n",
+               us(p.buildNs.load(), loads),
+               (unsigned long long)p.buildCalls.load());
+  std::fprintf(stderr, "  enqueueFunction calls: %llu\n",
+               (unsigned long long)enqs);
+  std::fprintf(stderr, "    total            : %8.2f us/call\n",
+               us(p.enqNs.load(), enqs));
+  std::fprintf(stderr, "    argument encoding: %8.2f us/call\n",
+               us(p.argNs.load(), enqs));
+  std::fprintf(stderr, "  NOTE: loadFunction runs once per LAUNCH, not once per kernel --\n");
+  std::fprintf(stderr, "        DeviceContext builds a fresh DeviceFunction on every call.\n");
+}
+
+// Close out a loadFunction that missed the cache and built a module.
+void profileRecordLoad(uint64_t loadT0, uint64_t buildT0) {
+  ProfileStats &p = profileStats();
+  uint64_t end = nowNs();
+  p.buildNs.fetch_add(end - buildT0, std::memory_order_relaxed);
+  p.buildCalls.fetch_add(1, std::memory_order_relaxed);
+  p.loadNs.fetch_add(end - loadT0, std::memory_order_relaxed);
+  p.loadCalls.fetch_add(1, std::memory_order_relaxed);
+}
+
+struct ProfileReporter {
+  ~ProfileReporter() {
+    if (profileEnabled())
+      profileReport();
+  }
+};
+ProfileReporter profileReporter;
+
+bool igcLogWanted() {
+  static const bool wanted = [] {
+    const char *env = std::getenv("MOJO_LZ_BUILD_LOG");
+    return env && *env && std::strcmp(env, "0") != 0;
+  }();
+  return wanted;
+}
 
 //===----------------------------------------------------------------------===//
 // SPIR-V: kernel argument sizes
@@ -407,6 +583,14 @@ const char *AsyncRT_DeviceContext_create(Context **result, const char *api,
   queueDesc.ordinal = ordinal;
   queueDesc.mode = ZE_COMMAND_QUEUE_MODE_ASYNCHRONOUS;
   queueDesc.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
+  // ZE_COMMAND_QUEUE_FLAG_IN_ORDER is an ENUMERATOR, not a macro, so it cannot be
+  // probed with #ifdef -- that test is always false and would silently disable this
+  // path. Used unconditionally: a header too old to have it fails the build loudly,
+  // which is what we want. Level Zero 1.9+ (oneAPI 2024+); Aurora is on 2026.1.
+  if (orderingMode() == Ordering::InOrder)
+    queueDesc.flags |= ZE_COMMAND_QUEUE_FLAG_IN_ORDER;
+  if (std::getenv("MOJO_LZ_PROFILE") || std::getenv("MOJO_LZ_BUILD_LOG"))
+    std::fprintf(stderr, "[mojo-lz] launch ordering: %s\n", orderingName());
   if (ze_result_t r = zeCommandListCreateImmediate(
           context->zeContext, context->device, &queueDesc,
           &context->commandList);
@@ -560,9 +744,20 @@ const char *AsyncRT_DeviceContext_loadFunction(
   (void)debugLevel;
   (void)optimizationLevel;
 
+  const bool prof = profileEnabled();
+  const uint64_t loadT0 = prof ? nowNs() : 0;
+
+  // NOTE: this key holds the ENTIRE SPIR-V module, and it is rebuilt and rehashed
+  // on every launch because DeviceContext calls loadFunction per launch.
   std::string cacheKey(functionName);
   cacheKey.push_back('\0');
   cacheKey.append(data, dataLength);
+  const uint64_t keyT1 = prof ? nowNs() : 0;
+  if (prof) {
+    ProfileStats &p = profileStats();
+    p.keyNs.fetch_add(keyT1 - loadT0, std::memory_order_relaxed);
+    p.keyBytes.fetch_add(cacheKey.size(), std::memory_order_relaxed);
+  }
   {
     std::lock_guard<std::mutex> lock(context->mutex);
     auto cached = context->functionCache.find(cacheKey);
@@ -570,16 +765,27 @@ const char *AsyncRT_DeviceContext_loadFunction(
       cached->second->refs.fetch_add(1, std::memory_order_relaxed);
       AsyncRT_DeviceContext_retain(context);
       *result = cached->second;
+      if (prof) {
+        ProfileStats &p = profileStats();
+        uint64_t end = nowNs();
+        p.lookupNs.fetch_add(end - keyT1, std::memory_order_relaxed);
+        p.loadNs.fetch_add(end - loadT0, std::memory_order_relaxed);
+        p.loadCalls.fetch_add(1, std::memory_order_relaxed);
+      }
       return nullptr;
     }
   }
+  const uint64_t buildT0 = prof ? nowNs() : 0;
+  if (prof)
+    profileStats().lookupNs.fetch_add(buildT0 - keyT1,
+                                      std::memory_order_relaxed);
 
   ze_module_desc_t moduleDesc{};
   moduleDesc.stype = ZE_STRUCTURE_TYPE_MODULE_DESC;
   moduleDesc.format = ZE_MODULE_FORMAT_IL_SPIRV;
   moduleDesc.inputSize = dataLength;
   moduleDesc.pInputModule = reinterpret_cast<const uint8_t *>(data);
-  moduleDesc.pBuildFlags = "";
+  moduleDesc.pBuildFlags = igcBuildFlags();
 
   ze_module_handle_t module = nullptr;
   ze_module_build_log_handle_t buildLog = nullptr;
@@ -597,8 +803,22 @@ const char *AsyncRT_DeviceContext_loadFunction(
     }
     return makeError(message);
   }
-  if (buildLog)
+  // IGC reports register allocation and spills here ("compiled SIMD32 allocated
+  // 128 regs and spilled around 247"). It is the only place those numbers are
+  // visible at run time, so surface them on request instead of discarding them.
+  if (buildLog) {
+    if (igcLogWanted()) {
+      size_t logSize = 0;
+      zeModuleBuildLogGetString(buildLog, &logSize, nullptr);
+      if (logSize > 1) {
+        std::string log(logSize, '\0');
+        zeModuleBuildLogGetString(buildLog, &logSize, log.data());
+        std::fprintf(stderr, "[mojo-lz] IGC build log for '%s':\n%s\n",
+                     functionName, log.c_str());
+      }
+    }
     zeModuleBuildLogDestroy(buildLog);
+  }
 
   ze_kernel_desc_t kernelDesc{};
   kernelDesc.stype = ZE_STRUCTURE_TYPE_KERNEL_DESC;
@@ -639,6 +859,8 @@ const char *AsyncRT_DeviceContext_loadFunction(
       cached->second->refs.fetch_add(1, std::memory_order_relaxed);
       AsyncRT_DeviceContext_retain(context);
       *result = cached->second;
+      if (prof)
+        profileRecordLoad(loadT0, buildT0);
       return nullptr;
     }
     function->refs.store(2, std::memory_order_relaxed); // cache + caller
@@ -646,6 +868,8 @@ const char *AsyncRT_DeviceContext_loadFunction(
   }
   AsyncRT_DeviceContext_retain(context);
   *result = function;
+  if (prof)
+    profileRecordLoad(loadT0, buildT0);
   return nullptr;
 }
 
@@ -671,6 +895,9 @@ const char *AsyncRT_DeviceContext_enqueueFunctionDirect(
                      " arguments but the launch supplied " +
                      std::to_string(argCount));
 
+  const bool prof = profileEnabled();
+  const uint64_t enqT0 = prof ? nowNs() : 0;
+
   std::lock_guard<std::mutex> lock(context->mutex);
   for (uint32_t i = 0; i < argCount; ++i) {
     size_t size = argSizes ? static_cast<size_t>(argSizes[i])
@@ -682,12 +909,22 @@ const char *AsyncRT_DeviceContext_enqueueFunctionDirect(
     ZE_TRY(zeKernelSetArgumentValue(function->kernel, i, sizeof(void *),
                                     &cell));
   }
+  if (prof)
+    profileStats().argNs.fetch_add(nowNs() - enqT0, std::memory_order_relaxed);
   ZE_TRY(zeKernelSetGroupSize(function->kernel, blockX, blockY, blockZ));
   ze_group_count_t groups{gridX, gridY, gridZ};
   ZE_TRY(zeCommandListAppendLaunchKernel(context->commandList, function->kernel,
                                          &groups, nullptr, 0, nullptr));
-  // An immediate command list is not in-order; `DeviceContext` promises it is.
-  ZE_TRY(zeCommandListAppendBarrier(context->commandList, nullptr, 0, nullptr));
+  // `DeviceContext` promises an in-order stream. Under Ordering::Barrier we supply
+  // that with a full drain after every launch (correct, and measurably expensive --
+  // see the MOJO_LZ_ORDERING note). Under Ordering::InOrder the driver supplies it.
+  if (orderingMode() == Ordering::Barrier)
+    ZE_TRY(zeCommandListAppendBarrier(context->commandList, nullptr, 0, nullptr));
+  if (prof) {
+    ProfileStats &p = profileStats();
+    p.enqNs.fetch_add(nowNs() - enqT0, std::memory_order_relaxed);
+    p.enqCalls.fetch_add(1, std::memory_order_relaxed);
+  }
   return nullptr;
 }
 

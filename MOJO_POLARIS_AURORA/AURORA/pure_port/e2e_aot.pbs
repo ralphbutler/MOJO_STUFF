@@ -29,11 +29,29 @@ export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
 export HTTPS_PROXY=$HTTP_PROXY
 export http_proxy=$HTTP_PROXY
 export https_proxy=$HTTP_PROXY
-export LD_LIBRARY_PATH=$RTLIB:${LD_LIBRARY_PATH:-}
+# Mojo's own compiler-runtime shared library. `mojo run` finds it through Bazel's runfiles,
+# but a standalone `mojo build` executable does not — run 1 (job 8836261) built all three
+# programs and then failed at launch with
+#     error while loading shared libraries: libKGENCompilerRTShared.so
+# It lives in the fork's bazel-bin. Put it on the path AND give the executables an rpath, so
+# they are self-contained rather than dependent on this job's environment.
+MOJORT=$REPO/bazel-bin/Mojo
+export LD_LIBRARY_PATH=$RTLIB:$MOJORT:${LD_LIBRARY_PATH:-}
+
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
 
 echo "== job $PBS_JOBID on $(hostname) at $(date)"
 mkdir -p "$OUT"
 cd "$REPO" || { echo "error: $REPO missing — run prepare_fork.sh"; exit 1; }
+
+if [ -f "$MOJORT/libKGENCompilerRTShared.so" ]; then
+    echo "== Mojo compiler runtime: $MOJORT/libKGENCompilerRTShared.so"
+else
+    echo "== WARNING: libKGENCompilerRTShared.so not in $MOJORT — searching the fork"
+    find "$REPO" -name 'libKGENCompilerRTShared.so' 2>/dev/null | head -3
+fi
 
 echo
 echo "################ build the max + layout packages with our fork ################"
@@ -41,21 +59,32 @@ echo "################ build the max + layout packages with our fork ###########
 ls -l bazel-bin/max/mojo/max/max.mojoc bazel-bin/max/kernels/src/layout/layout.mojoc
 PKGS=$OUT/pkgs
 mkdir -p "$PKGS"
-cp bazel-bin/max/mojo/max/max.mojoc bazel-bin/max/kernels/src/layout/layout.mojoc "$PKGS/"
+# Bazel writes its outputs read-only (r-xr-xr-x), so a plain `cp` over an existing copy fails
+# with "Permission denied" -- as it did in job 8836303, which then silently built against the
+# STALE packages left by the previous run. Remove first, and make the copies writable so the
+# next run can replace them. Fail loudly rather than proceed with packages of unknown vintage.
+rm -f "$PKGS/max.mojoc" "$PKGS/layout.mojoc"
+cp bazel-bin/max/mojo/max/max.mojoc bazel-bin/max/kernels/src/layout/layout.mojoc "$PKGS/" \
+    || { echo "ERROR: could not refresh $PKGS — refusing to build against stale packages"; exit 1; }
+chmod u+w "$PKGS/max.mojoc" "$PKGS/layout.mojoc"
+ls -l "$PKGS"
 
 for prog in $PROGS; do
     echo
     echo "################ $prog — mojo build (ahead of time) ################"
     ./bazelw run //Mojo:mojo -- build \
-        --target-accelerator intel-pvc \
+        --target-accelerator intel-pvc $IGNORE_DEPRECATED \
         -I "$PKGS" \
         -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
         -Xlinker -rpath -Xlinker "$RTLIB" \
+        -Xlinker -rpath -Xlinker "$MOJORT" \
         "$G/curriculum/$prog.mojo" -o "$OUT/$prog" 2>&1 \
         | grep -vE "^\[[0-9,]+ / [0-9,]+\]|warning:|note:|Imported from|Included from|^ +[~^]" | tail -15
     echo "== build exit ${PIPESTATUS[0]}"
     if [ -x "$OUT/$prog" ]; then
         ls -l "$OUT/$prog"
+        echo "== shared-library resolution:"
+        ldd "$OUT/$prog" 2>&1 | grep -iE "not found|KGEN|mojo_level_zero" | sed 's/^/     /'
         echo "== run $OUT/$prog"
         "$OUT/$prog"
         echo "== run exit $?"

@@ -1,0 +1,100 @@
+#!/bin/bash
+#PBS -A ModCon
+#PBS -q next-eval
+#PBS -l select=1
+#PBS -l walltime=00:45:00
+#PBS -l filesystems=flare:home
+#PBS -N mojo_g6_order
+#PBS -j oe
+
+# G6 — is the per-launch BARRIER the remaining host/device overhead, and can Level Zero's
+# in-order command list replace it?
+#
+# What job 8836110 showed, trivial kernel, 2,000 launches per row:
+#     1 workgroup    ->  3.91 us/launch      measured HOST cost stayed flat at ~3.7 us
+#     16             -> 12.28               across every row, so the rise is device-side
+#     256            -> 38.19
+#     4096           -> 38.37               (16x the work as 256, same time)
+# 256 and 4096 workgroups cost the same, so this is not compute and not bandwidth. It is
+# zeCommandListAppendBarrier draining the device after every launch -- our G4 fix for
+# DeviceContext's in-order promise. It is also most of the 40.3-vs-6.3 us/pass vecadd gap
+# against our own harness, which launched independent kernels with no barrier.
+#
+# Three modes (MOJO_LZ_ORDERING), each run against a SPEED test and a CORRECTNESS test:
+#   barrier  what G5 shipped
+#   inorder  ZE_COMMAND_QUEUE_FLAG_IN_ORDER; driver orders, no explicit barrier
+#   none     no ordering at all -- diagnostic, EXPECTED TO BE WRONG
+#
+# 04b is the correctness test, and it is the one that matters: 15 dependent launches per
+# epoch. Under `none` its loss curve MUST go wrong (that is the G4 bug, deliberately
+# reintroduced to prove ordering is really being tested). Under `barrier` and `inorder` it
+# must reproduce 2.1783555 -> 0.0005614754 exactly. An `inorder` run that is fast AND exact
+# is the result we want; fast but wrong means the flag does not mean what we think.
+#
+# Prerequisite: bash build_runtime.sh on uan-0007 (ordering modes are new).
+# Submit from MOJO_WORK/AURORA/gpu:   qsub ordering_test.pbs
+# Output: mojo_g6_order.o<jobid>. No inline comments after #PBS values.
+
+W=/lus/flare/projects/ModCon/rbutler/MOJO_WORK
+G=$W/AURORA/gpu
+REPO=$W/modular
+RTLIB=$W/runtime/lib
+
+# Modular's own max/kernels/src/layout/tensor_engine.mojo calls stdlib APIs that the
+# stdlib in the same repo has deprecated, producing ~600 warnings (~6 lines each) per
+# compile and burying real output. Not our code and not ours to fix in a fork we rebase.
+# These five names are exactly what it trips; every OTHER warning, including any from our
+# own sources, still prints. Verified on the Mac: the emitted SPIR-V is byte-identical
+# with and without them.
+IGNORE_DEPRECATED="--ignore-deprecated Pointer.load --ignore-deprecated Pointer.store \
+    --ignore-deprecated Pointer.bitcast --ignore-deprecated Pointer.address_space_cast \
+    --ignore-deprecated Pointer.__add__"
+
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT
+export ZE_AFFINITY_MASK=0
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTP_PROXY
+export MOJO_LZ_PROFILE=1
+
+echo "== job $PBS_JOBID on $(hostname) at $(date)"
+ls -l "$RTLIB/libmojo_level_zero_rt.so"
+if strings "$RTLIB/libmojo_level_zero_rt.so" | grep -q MOJO_LZ_ORDERING; then
+    echo "== runtime supports MOJO_LZ_ORDERING"
+else
+    echo "ERROR: runtime predates the ordering patch."
+    echo "       Run 'bash build_runtime.sh' on uan-0007 and resubmit."
+    exit 1
+fi
+
+run_one() {
+    ( cd "$REPO" && ./bazelw run //Mojo:mojo -- run \
+        --target-accelerator intel-pvc $IGNORE_DEPRECATED \
+        -I "$REPO/max/mojo" -I "$REPO/max/kernels/src" \
+        -Xlinker -L"$RTLIB" -Xlinker -lmojo_level_zero_rt \
+        "$G/$1" ) 2>&1 | grep -v "^\[[0-9,]* / [0-9,]*\]"
+}
+
+cd "$G" || { echo "error: $G missing"; exit 1; }
+
+for mode in barrier inorder none; do
+    export MOJO_LZ_ORDERING=$mode
+    echo
+    echo "############################################################"
+    echo "################ ordering = $mode"
+    echo "############################################################"
+    echo "---- SPEED: launch overhead vs workgroup count ----"
+    run_one launch_overhead.mojo
+    echo "---- CORRECTNESS: 04b, 15 dependent launches per epoch ----"
+    run_one curriculum/04b_train_mlp_gpu.mojo
+    echo "== $mode done"
+done
+
+echo
+echo "== READ: compare the 256/4096-workgroup rows across modes."
+echo "==   inorder fast AND 04b loss curve exact  -> replace the per-launch barrier, everyone gains."
+echo "==   inorder fast BUT 04b wrong             -> the flag does not give the ordering we need."
+echo "==   none fast and 04b wrong                -> confirms the barrier was the cost (expected)."
+echo "== 04b reference: 2.1783555 -> 0.0005614754, every printed epoch."
+echo "== done $(date)"

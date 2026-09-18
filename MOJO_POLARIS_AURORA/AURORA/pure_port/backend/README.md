@@ -49,9 +49,3 @@ Apache-2.0 §4(b) requires modified files to carry prominent notices stating tha
 changed. Most files here carry an `AURORA PATCH` marker in their header saying so; this README
 is the notice for all of them. This is not an official Modular release and is not endorsed by
 Modular.
-
-**Two items to settle before this is relied on** (tracked, not yet done):
-`Mojo/lib/Target/IntelGPU/IntelGPUTraits.cpp` and `Mojo/stdlib/std/sys/__init__.mojo` are missing
-their `AURORA PATCH` marker; and the six new `IntelGPU*` files still carry the upstream
-`Copyright (c) 2026, Modular Inc.` header they were templated from, which should name their
-actual authors instead.

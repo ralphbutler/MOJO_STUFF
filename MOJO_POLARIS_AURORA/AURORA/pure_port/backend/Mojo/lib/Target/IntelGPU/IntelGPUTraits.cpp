@@ -10,6 +10,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //===----------------------------------------------------------------------===//
+//
+// AURORA PATCH (G5): target metadata for Intel GPUs reached through SPIR-V
+// (OpenCL-flavoured `spirv64` kernels, launched via Level Zero).
+//
+//===----------------------------------------------------------------------===//
 
 #include "Target/IntelGPU/IntelGPUTraits.h"
 
